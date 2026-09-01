@@ -1,6 +1,5 @@
 # Final Master Instructions (With Dynamic Industry Variables)
 
-Copy and paste this final, consolidated prompt block into your project custom instructions or prefix your generation prompts with it. This setup tells Claude how to output perfectly structured copy for the designer, while leaving the industry and pillar dynamically customizable based on your next prompt.
 
 ```markdown
 # Role & Context
