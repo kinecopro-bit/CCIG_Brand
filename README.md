@@ -23,6 +23,7 @@ Our three core service pillars:
 | `checklists/` | Client-facing checklists and reference documents. |
 | `Monthly Recap/` | Monthly recap collateral, organized by month. |
 | `Head Shots/` | Team headshot photography. |
+| `apparel-shop/` | Internal CCIG Apparel Shop web app (Firebase). See `apparel-shop/README.md`. |
 
 ## Quick reference
 

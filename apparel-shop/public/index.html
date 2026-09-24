@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CCIG Apparel Shop</title>
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,800;0,900;1,600&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body class="auth-pending" data-page="shop">
+  <header class="site-header" data-site-header></header>
+
+  <main>
+    <section class="page-hero">
+      <div class="container">
+        <p class="eyebrow">Team Apparel</p>
+        <h1>Apparel Shop</h1>
+        <p class="hero-sub">Choose a size and quantity, then add it to your cart.</p>
+      </div>
+    </section>
+
+    <div class="container">
+      <div id="editor-banner" class="editor-banner" hidden>
+        <strong>Editor mode.</strong> You can change the quantities and prices below. Changes are saved for everyone when you click <em>Save changes</em>.
+      </div>
+
+      <div class="tabs" role="tablist" aria-label="Apparel categories">
+        <button type="button" role="tab" id="tab-mens" aria-controls="panel-mens" aria-selected="true" data-category="mens">Men's</button>
+        <button type="button" role="tab" id="tab-womens" aria-controls="panel-womens" aria-selected="false" tabindex="-1" data-category="womens">Women's</button>
+        <button type="button" role="tab" id="tab-unisex" aria-controls="panel-unisex" aria-selected="false" tabindex="-1" data-category="unisex">Unisex</button>
+      </div>
+
+      <section class="tab-panel" role="tabpanel" id="panel-mens" aria-labelledby="tab-mens">
+        <div class="product-grid" data-grid="mens"><p class="loading">Loading apparel…</p></div>
+      </section>
+      <section class="tab-panel" role="tabpanel" id="panel-womens" aria-labelledby="tab-womens" hidden>
+        <div class="product-grid" data-grid="womens"><p class="loading">Loading apparel…</p></div>
+      </section>
+      <section class="tab-panel" role="tabpanel" id="panel-unisex" aria-labelledby="tab-unisex" hidden>
+        <div class="product-grid" data-grid="unisex"><p class="loading">Loading apparel…</p></div>
+      </section>
+    </div>
+  </main>
+
+  <div class="floating-cart" data-floating-cart hidden>
+    <a class="button button-primary" href="/cart">View cart · <span data-cart-count>0</span> items</a>
+  </div>
+
+  <footer class="site-footer">
+    <div class="container">CCIG · Denver · Austin · Phoenix</div>
+  </footer>
+
+  <script type="module" src="/js/shop.js"></script>
+</body>
+</html>

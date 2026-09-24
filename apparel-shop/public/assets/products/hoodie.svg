@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" role="img" aria-label="Hoodie placeholder image">
+  <rect width="400" height="400" fill="#EDECED"/>
+  <path d="M150 80 Q200 20 250 80 L300 100 L345 305 L305 315 L280 185 L280 340 L120 340 L120 185 L95 315 L55 305 L100 100 Z" fill="#8FB24E"/><path d="M165 80 Q200 45 235 80 Q200 110 165 80 Z" fill="#153243"/><rect x="150" y="260" width="100" height="45" rx="8" fill="none" stroke="#153243" stroke-width="3"/><text x="200" y="200" text-anchor="middle" font-family="Georgia, serif" font-weight="700" font-size="34" fill="#153243">CCIG</text>
+  <text x="200" y="372" text-anchor="middle" font-family="Source Sans Pro, Arial, sans-serif" font-size="14" letter-spacing="3" fill="#366E8E">PLACEHOLDER IMAGE</text>
+</svg>

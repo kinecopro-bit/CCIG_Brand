@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Your Cart · CCIG Apparel</title>
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,800;0,900;1,600&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body class="auth-pending" data-page="cart">
+  <header class="site-header" data-site-header></header>
+
+  <main>
+    <section class="page-hero page-hero-compact">
+      <div class="container">
+        <p class="eyebrow">Team Apparel</p>
+        <h1>Your Cart</h1>
+      </div>
+    </section>
+
+    <div class="container">
+      <div id="cart-view" class="cart-layout">
+        <section class="cart-items" aria-labelledby="cart-items-heading">
+          <h2 id="cart-items-heading" class="visually-hidden">Items in your cart</h2>
+          <ul class="cart-list" id="cart-list"><li class="loading">Loading your cart…</li></ul>
+          <a href="/" class="link-button back-link">← Keep shopping</a>
+        </section>
+
+        <aside class="checkout-panel" aria-labelledby="summary-heading">
+          <h2 id="summary-heading">Order summary</h2>
+          <dl class="summary">
+            <div><dt>Total items</dt><dd id="total-items">0</dd></div>
+            <div><dt>Subtotal</dt><dd id="subtotal">$0.00</dd></div>
+          </dl>
+
+          <form id="checkout-form" novalidate>
+            <div class="field">
+              <label for="recipients" class="field-label">Who are these for? <span class="required" aria-hidden="true">*</span></label>
+              <p id="recipients-help" class="field-help">Please include the specific client, prospect, carrier, or TBP name(s) this is for. If for yourself, please specify that.</p>
+              <textarea id="recipients" name="recipients" rows="4" maxlength="2000" required
+                        aria-describedby="recipients-help recipients-error"></textarea>
+              <p id="recipients-error" class="field-error" role="alert" hidden></p>
+            </div>
+
+            <div class="acknowledgement">
+              <input type="checkbox" id="acknowledge" name="acknowledge" required>
+              <label for="acknowledge">
+                <span class="ack-policy">One apparel item is provided by CCIG at no cost for each release. If you request multiple items during a release, the total amount for additional items will be deducted from your next paycheck.</span>
+                <strong class="ack-consent">I understand and authorize this payroll deduction if applicable.</strong>
+              </label>
+            </div>
+
+            <p id="checkout-error" class="form-error" role="alert" hidden></p>
+            <button type="submit" id="checkout-button" class="button button-primary button-block" disabled>Check out</button>
+            <p class="field-help center" id="checkout-hint">Add items, answer "Who are these for?", and check the box to continue.</p>
+          </form>
+        </aside>
+      </div>
+
+      <section id="confirmation" class="confirmation" hidden tabindex="-1" aria-labelledby="confirmation-heading">
+        <div class="confirmation-icon" aria-hidden="true">✓</div>
+        <h2 id="confirmation-heading">Your order has been placed</h2>
+        <p>Order number <strong id="order-number"></strong></p>
+        <p id="confirmation-email-note">A confirmation email is on its way to <strong id="confirmation-email"></strong>.</p>
+        <p class="muted">If you need to submit any changes to your order, please reach out to <a data-order-contact></a>.</p>
+        <a href="/" class="button button-secondary">Back to apparel</a>
+      </section>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">CCIG · Denver · Austin · Phoenix</div>
+  </footer>
+
+  <script type="module" src="/js/cart.js"></script>
+</body>
+</html>

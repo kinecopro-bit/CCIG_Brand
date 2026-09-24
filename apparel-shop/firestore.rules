@@ -1,0 +1,59 @@
+rules_version = '2';
+
+// CCIG Apparel Shop — Firestore security rules.
+// Everything is gated to signed-in, verified @thinkccig.com accounts.
+// Orders are written only by the placeOrder Cloud Function (Admin SDK bypasses rules).
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedInEmail() {
+      return request.auth.token.email.lower();
+    }
+
+    function isCcig() {
+      return request.auth != null
+        && request.auth.token.email_verified == true
+        && signedInEmail().matches('.*@thinkccig[.]com$');
+    }
+
+    // Editors are listed as documents in /admins/{lowercase email}.
+    function isEditor() {
+      return isCcig()
+        && exists(/databases/$(database)/documents/admins/$(signedInEmail()));
+    }
+
+    function validStock(n) {
+      return n is int && n >= 0 && n <= 100000;
+    }
+
+    match /products/{productId} {
+      allow read: if isCcig();
+
+      // Editors may change only price and size quantities.
+      allow update: if isEditor()
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['price', 'sizes', 'updatedAt', 'updatedBy'])
+        && request.resource.data.price is number
+        && request.resource.data.price >= 0
+        && request.resource.data.price <= 10000
+        && request.resource.data.sizes.keys().hasOnly(['S', 'M', 'L', 'XL', 'XXL'])
+        && validStock(request.resource.data.sizes.S)
+        && validStock(request.resource.data.sizes.M)
+        && validStock(request.resource.data.sizes.L)
+        && validStock(request.resource.data.sizes.XL)
+        && validStock(request.resource.data.sizes.XXL)
+        && request.resource.data.updatedBy == signedInEmail();
+    }
+
+    // A user can only check whether they themselves are an editor.
+    match /admins/{email} {
+      allow read: if isCcig() && signedInEmail() == email;
+    }
+
+    // Users can see their own orders; editors can see all orders.
+    match /orders/{orderId} {
+      allow read: if isEditor()
+        || (isCcig() && resource.data.email == signedInEmail());
+    }
+  }
+}

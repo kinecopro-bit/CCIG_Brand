@@ -1,0 +1,20 @@
+{
+  "name": "ccig-apparel-shop-functions",
+  "private": true,
+  "description": "Cloud Functions for the CCIG Apparel Shop (order placement + order emails).",
+  "main": "index.js",
+  "engines": {
+    "node": "22"
+  },
+  "scripts": {
+    "serve": "firebase emulators:start",
+    "deploy": "firebase deploy --only functions",
+    "logs": "firebase functions:log",
+    "seed": "node scripts/seed.js"
+  },
+  "dependencies": {
+    "firebase-admin": "^14.5.0",
+    "firebase-functions": "^7.4.0",
+    "nodemailer": "^10.0.10"
+  }
+}

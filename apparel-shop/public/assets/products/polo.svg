@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" role="img" aria-label="Polo placeholder image">
+  <rect width="400" height="400" fill="#EDECED"/>
+  <path d="M145 70 L100 90 L60 140 L100 170 L120 150 L120 330 L280 330 L280 150 L300 170 L340 140 L300 90 L255 70 L230 70 L200 100 L170 70 Z" fill="#366E8E"/><path d="M170 70 L200 100 L230 70 L220 62 L200 80 L180 62 Z" fill="#FFFFFF"/><line x1="200" y1="100" x2="200" y2="150" stroke="#FFFFFF" stroke-width="3"/><circle cx="200" cy="118" r="3" fill="#FFFFFF"/><circle cx="200" cy="138" r="3" fill="#FFFFFF"/><text x="245" y="160" text-anchor="middle" font-family="Georgia, serif" font-weight="700" font-size="14" fill="#FFFFFF">CCIG</text>
+  <text x="200" y="372" text-anchor="middle" font-family="Source Sans Pro, Arial, sans-serif" font-size="14" letter-spacing="3" fill="#366E8E">PLACEHOLDER IMAGE</text>
+</svg>

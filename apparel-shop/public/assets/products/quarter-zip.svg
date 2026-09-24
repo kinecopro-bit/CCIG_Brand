@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" role="img" aria-label="Quarter-zip placeholder image">
+  <rect width="400" height="400" fill="#EDECED"/>
+  <path d="M140 70 L95 95 L55 300 L95 310 L120 170 L120 335 L280 335 L280 170 L305 310 L345 300 L305 95 L260 70 L230 62 L170 62 Z" fill="#153243"/><path d="M170 62 L230 62 L225 85 L175 85 Z" fill="#8FB24E"/><line x1="200" y1="62" x2="200" y2="170" stroke="#BFC7CB" stroke-width="3"/><text x="245" y="150" text-anchor="middle" font-family="Georgia, serif" font-weight="700" font-size="14" fill="#FFFFFF">CCIG</text>
+  <text x="200" y="372" text-anchor="middle" font-family="Source Sans Pro, Arial, sans-serif" font-size="14" letter-spacing="3" fill="#366E8E">PLACEHOLDER IMAGE</text>
+</svg>

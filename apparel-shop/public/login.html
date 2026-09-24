@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sign In · CCIG Apparel</title>
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,800;0,900;1,600&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body class="login-page" data-page="login">
+  <main class="login-shell">
+    <div class="login-card">
+      <div class="login-card-header">
+        <img src="/assets/CCIG-Reverse-Horizontal-RGB.png" alt="CCIG" width="160" height="44">
+        <p class="eyebrow">Team Apparel Shop</p>
+      </div>
+      <div class="login-card-body">
+        <div id="step-email">
+          <h1 id="signin-heading">Sign in</h1>
+          <p class="muted">Use your CCIG email. We'll send you a secure link — no password needed.</p>
+          <form id="signin-form" novalidate>
+            <label for="email" class="field-label">Work email</label>
+            <input id="email" name="email" type="email" autocomplete="email" inputmode="email"
+                   placeholder="first.last@thinkccig.com" required aria-describedby="signin-error">
+            <p id="signin-error" class="field-error" role="alert" hidden></p>
+            <button id="signin-button" type="submit" class="button button-primary button-block">Email me a sign-in link</button>
+          </form>
+        </div>
+        <div id="step-sent" hidden>
+          <h1>Check your inbox</h1>
+          <p>We sent a sign-in link to <strong id="sent-to"></strong>. Open it on this device to continue.</p>
+          <p class="muted small">The link expires after a short time. Check your junk folder if it doesn't arrive.</p>
+          <p id="emulator-hint" class="notice small" hidden>
+            Local testing: the link is printed in the Auth emulator log and at
+            <a href="http://localhost:4000/auth" target="_blank" rel="noopener">localhost:4000/auth</a>.
+          </p>
+          <button type="button" id="use-different-email" class="link-button">Use a different email</button>
+        </div>
+      </div>
+    </div>
+  </main>
+  <script type="module" src="/js/login.js"></script>
+</body>
+</html>
