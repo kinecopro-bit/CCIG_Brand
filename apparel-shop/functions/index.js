@@ -95,7 +95,7 @@ exports.placeOrder = onCall({ secrets: [EMAIL_SECRET] }, async (request) => {
       orderNumber,
       email,
       uid: request.auth.uid,
-      name: displayNameFor(request.auth, email),
+      ...nameFromEmail(email),
       items,
       totalItems: items.reduce((n, i) => n + i.qty, 0),
       subtotal: round2(items.reduce((n, i) => n + i.lineTotal, 0)),
@@ -183,20 +183,22 @@ function validateOrderInput(data) {
 async function sendOrderNotification(order) {
   const html = emailLayout({
     heading: "New apparel order",
-    intro: `<strong>${esc(order.name)}</strong> (${esc(order.email)}) placed an order.`,
+    requestFrom: order.name,
+    intro: `A new order was placed by ${esc(order.email)}.`,
     order,
     outro: `Reply to this email to reach ${esc(order.name)} directly.`,
   });
   await sendMail({
-    // In "graph" mode this is sent from the orderer's own mailbox.
-    // In "smtp" mode it's sent from SMTP_USER with the orderer's name and Reply-To.
+    // In "smtp" mode (default for CCIG) it's sent from the ORDER_INBOX mailbox, shown as
+    // "First Last via CCIG Apparel", with Reply-To set to the orderer.
+    // In "graph" mode it's sent from the orderer's own mailbox.
     fromUser: order.email,
     fromName: order.name,
     to: ORDER_INBOX.value(),
     replyTo: order.email,
     subject: SUBJECT_ORDER,
     html,
-    text: emailText(order, `${order.name} (${order.email}) placed an order.`),
+    text: emailText(order, `The request is from: ${order.name}\n\nA new order was placed by ${order.email}.`),
   });
 }
 
@@ -205,7 +207,7 @@ async function sendConfirmation(order) {
   const shopUrl = SHOP_URL.value();
   const html = emailLayout({
     heading: "We received your order",
-    intro: `Hi ${esc(order.name.split(" ")[0])}, thanks for your order! Here's a summary.`,
+    intro: `Hi ${esc(order.firstName || order.name)}, thanks for your order! Here's a summary.`,
     order,
     outro:
       `If you need to submit any changes to your order, please reach out to ` +
@@ -296,7 +298,7 @@ async function sendViaGraph({ from, to, replyTo, subject, html }) {
   if (!res.ok) throw new Error(`Graph sendMail failed: ${res.status} ${await res.text()}`);
 }
 
-function emailLayout({ heading, intro, order, outro }) {
+function emailLayout({ heading, intro, order, outro, requestFrom = "" }) {
   const rows = order.items.map((i) => `
     <tr>
       <td style="padding:10px 12px;border-bottom:1px solid #EDECED;">${esc(i.name)}<br>
@@ -317,6 +319,8 @@ function emailLayout({ heading, intro, order, outro }) {
         </td></tr>
         <tr><td style="height:4px;background:#8FB24E;"></td></tr>
         <tr><td style="padding:24px 28px 8px;font-size:15px;line-height:1.5;">
+          ${requestFrom ? `<p style="margin:0 0 14px;font-size:17px;padding:12px 14px;background:#EDECED;border-left:4px solid #8FB24E;">
+            The request is from: <strong>${esc(requestFrom)}</strong></p>` : ""}
           <p style="margin:0 0 14px;">${intro}</p>
           <p style="margin:0 0 4px;font-size:13px;color:#366E8E;text-transform:uppercase;letter-spacing:1px;font-weight:600;">Order number</p>
           <p style="margin:0 0 16px;font-weight:700;">${esc(order.orderNumber)}</p>
@@ -370,10 +374,19 @@ function emailText(order, intro, outro = "") {
 // Helpers
 // ---------------------------------------------------------------------------
 
-function displayNameFor(auth, email) {
-  if (auth.token.name) return auth.token.name;
-  return email.split("@")[0].split(/[._-]+/).filter(Boolean)
-    .map((w) => w[0].toUpperCase() + w.slice(1)).join(" ");
+// CCIG emails are first.last@thinkccig.com: everything before the first "." is the
+// first name, everything after it (up to the "@") is the last name.
+function nameFromEmail(email) {
+  const local = email.split("@")[0];
+  const dot = local.indexOf(".");
+  const firstName = capitalize(dot === -1 ? local : local.slice(0, dot));
+  const lastName = capitalize(dot === -1 ? "" : local.slice(dot + 1));
+  return { firstName, lastName, name: [firstName, lastName].filter(Boolean).join(" ") || email };
+}
+
+// "smith-jones" -> "Smith-Jones", "o'brien" -> "O'Brien"
+function capitalize(s) {
+  return s.toLowerCase().replace(/(^|[-'. ])([a-z])/g, (_, sep, c) => sep + c.toUpperCase());
 }
 
 function makeOrderNumber(id) {

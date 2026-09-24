@@ -72,14 +72,20 @@ For images, drop real photos into `public/assets/products/` and point `imageUrl`
 
 ## Email setup
 
-Set `EMAIL_TRANSPORT` in `functions/.env`:
+CCIG is on Microsoft 365 and uses **`smtp` mode**, so IT doesn't need to register an app:
 
-| Mode | Order email to Nick comes from… | Confirmation comes from… | Needs |
-|---|---|---|---|
-| `log` (default) | not sent; written to `mail_log` | not sent | nothing, for testing |
-| `smtp` | Nick's mailbox, shown as **"Jane Doe via CCIG Apparel"**, with **Reply-To: jane.doe@thinkccig.com** | nick.kokat@thinkccig.com | SMTP enabled for that mailbox. Put its password (or app password) in `EMAIL_SECRET` |
-| `graph` (Microsoft 365) | **the orderer's own mailbox** (jane.doe@thinkccig.com) | nick.kokat@thinkccig.com | An Entra ID app registration with the **Mail.Send application** permission (admin consent). Set `GRAPH_TENANT_ID`, `GRAPH_CLIENT_ID`, and the client secret in `EMAIL_SECRET` |
+- **Order email** ("An order has been placed for CCIG Apparel."): sent to `ORDER_INBOX` from Nick's mailbox. The sender name reads **"Jane Doe via CCIG Apparel"** and **Reply-To** is the orderer. The body starts with **"The request is from: Jane Doe"**.
+- **Confirmation email** ("CCIG APPAREL ORDER SUMMARY"): sent from nick.kokat@thinkccig.com to the orderer.
 
-Why the modes differ: a website can't send email *as* someone without access to their mailbox. `graph` mode gets that access through an IT-approved Microsoft 365 app permission. It's recommended if CCIG is on Microsoft 365, and IT can use an *application access policy* to limit which mailboxes it may send from. If IT won't grant that, `smtp` mode is the standard workaround: the email names the orderer and replies go straight to them.
+The name comes from the signed-in CCIG email. Everything before the first "." is the first name, and everything after it (up to the "@") is the last name. So `jane.doe@thinkccig.com` becomes **Jane Doe**. The name is also saved on the order (`firstName`, `lastName`, `name`).
+
+To turn sending on:
+1. In `functions/.env`, set `EMAIL_TRANSPORT=smtp`. Check that `SMTP_USER` is the sending mailbox (nick.kokat@thinkccig.com) and that `SMTP_HOST=smtp.office365.com` and `SMTP_PORT=587`.
+2. Run `firebase functions:secrets:set EMAIL_SECRET` and enter that mailbox's password. If the account uses MFA, use an app password.
+3. Run `firebase deploy --only functions`, place a test order, and check both inboxes.
+
+If Microsoft 365 rejects the login (`535 5.7.139 Authentication unsuccessful`), password sign-in for SMTP is turned off for that mailbox or the organization. Microsoft has been phasing it out. The fallback is to register a small app for the mailbox and send through Microsoft Graph instead.
+
+Other modes: `log` (the default while testing) writes emails to the `mail_log` collection instead of sending them. `graph` sends through Microsoft Graph and needs `GRAPH_TENANT_ID`, `GRAPH_CLIENT_ID` and a client secret in `EMAIL_SECRET`.
 
 If an email fails, the order is still saved. Its `emailStatus` shows `failed`/`partial`, and the error appears in the function logs.
