@@ -1,0 +1,11 @@
+rules_version = '2';
+// Starting-point rules for the onboarding portal. TEMPLATE: open read/write on
+// clients/{clientId}. Before real client data goes in, require sign-in and
+// restrict the "applicable" field to approved CCIG users (see README).
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /clients/{clientId} {
+      allow read, write: if true;   // TEMPLATE ONLY - tighten before production
+    }
+  }
+}
