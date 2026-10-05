@@ -48,7 +48,7 @@
   #syncState.ok{background:#e4efd2}
   #syncState.warn{background:#ffe9bf}
   .table-wrap{overflow-x:auto}
-  table{width:100%;border-collapse:collapse;min-width:1020px}
+  table{width:100%;border-collapse:collapse;min-width:1170px}
   th{background:var(--darkblue);color:var(--white);font-size:12px;letter-spacing:.06em;text-transform:uppercase;text-align:left;padding:10px 12px;position:sticky;top:0}
   td{padding:10px 12px;border-bottom:1px solid var(--lightgrey);vertical-align:top;font-size:14.5px;background:var(--white)}
   tr.phase td{background:var(--lightblue);color:var(--white);font-family:'Playfair Display',serif;font-weight:700;font-size:16px;padding:10px 12px}
@@ -72,6 +72,13 @@
   tr.na td.col-status select,tr.na td.col-note textarea{pointer-events:none}
   .locked-note{font-size:12px;color:#5b6f7a;margin-top:4px}
 
+  /* Sign buttons */
+  td.col-sign{width:150px;white-space:nowrap}
+  a.signbtn{display:inline-block;font-weight:700;font-size:14px;text-decoration:none;background:var(--green);color:var(--darkblue);border-radius:6px;padding:8px 14px}
+  a.signbtn:hover{background:#7ea040}
+  span.signbtn{display:inline-block;font-size:13px;color:#6b7c86;border:1px dashed var(--grey);border-radius:6px;padding:7px 12px}
+  button.editlink{display:block;margin-top:6px;font-size:12px;padding:2px 0}
+  tr.na td.col-sign{pointer-events:none}
   /* Auth + staff */
   .topbar{max-width:1280px;margin:0 auto;padding:10px 16px 0;display:flex;justify-content:flex-end;align-items:center;gap:12px;font-size:14px}
   .topbar .who{color:var(--lightblue);font-weight:600}
@@ -156,7 +163,7 @@
     <div class="table-wrap">
       <table>
         <thead><tr>
-          <th>Item</th><th>What This Covers</th><th>Responsible Party</th><th>Signer</th>
+          <th>Item</th><th>What This Covers</th><th>Responsible Party</th><th>Signer</th><th>Sign</th>
           <th>Status</th><th>Notes</th><th>Applicability</th>
         </tr></thead>
         <tbody id="rows"></tbody>
@@ -203,6 +210,7 @@ const pageUrl = location.origin + location.pathname + "?client=" + encodeURIComp
    staff/{email}                      exists => approved CCIG staff (created in the Firebase console)               */
 let progress = {};      // { [id]: {status, note} }
 let applic = {};        // { [id]: "Not Applicable" }
+let docLinks = {};      // { [id]: "https://…" }  signing link for THIS client (staff write only)
 let isStaff = false;
 
 const $ = s => document.querySelector(s);
@@ -230,9 +238,13 @@ function armSlowTimer(){
 }
 
 /* ---------- Saving ---------- */
-const pendingProg = {}, pendingApp = {};
+const pendingProg = {}, pendingApp = {}, pendingLinks = {};
 let timer = null;
 function save(id, patch){
+  if ("link" in patch){
+    if (!isStaff) return;
+    docLinks[id] = patch.link; pendingLinks[id] = patch.link;
+  }
   if ("applicable" in patch){
     if (!isStaff) return;
     applic[id] = patch.applicable; pendingApp[id] = patch.applicable;
@@ -242,12 +254,16 @@ function save(id, patch){
   clearTimeout(timer); timer = setTimeout(flush, 500);
 }
 async function flush(){
-  const prog = {...pendingProg}, app = {...pendingApp};
+  const prog = {...pendingProg}, app = {...pendingApp}, links = {...pendingLinks};
   for (const k in pendingProg) delete pendingProg[k];
   for (const k in pendingApp) delete pendingApp[k];
+  for (const k in pendingLinks) delete pendingLinks[k];
   const jobs = [];
   if (Object.keys(prog).length) jobs.push(F.setDoc(progressRef, {items: prog, updatedAt: Date.now()}, {merge:true}));
-  if (Object.keys(app).length)  jobs.push(F.setDoc(clientRef, {applicability: app}, {merge:true}));
+  const clientPatch = {};
+  if (Object.keys(app).length)   clientPatch.applicability = app;
+  if (Object.keys(links).length) clientPatch.docLinks = links;
+  if (Object.keys(clientPatch).length) jobs.push(F.setDoc(clientRef, clientPatch, {merge:true}));
   if (!jobs.length) return;
   inflight++; refreshBadge(); armSlowTimer();
   try { await Promise.all(jobs); serverSeen = true; failMsg = ""; }   // resolves only after the server confirms
@@ -303,7 +319,7 @@ $("#noAccessOut").addEventListener("click", doSignOut);
 
 A.onAuthStateChanged(auth, async user => {
   unsubs.forEach(u => u()); unsubs = [];
-  progress = {}; applic = {}; isStaff = false; serverSeen = false; failMsg = "";
+  progress = {}; applic = {}; docLinks = {}; isStaff = false; serverSeen = false; failMsg = "";
   show("#appView", false); show("#staffPanel", false); show("#noAccess", false);
   if (!user){ show("#authView", true); show("#topbar", false); return; }
   show("#authView", false); show("#topbar", true);
@@ -329,7 +345,7 @@ A.onAuthStateChanged(auth, async user => {
   unsubs.push(F.onSnapshot(clientRef, {includeMetadataChanges:true}, snap => {
     if (denied) return;
     const d = snap.data() || {};
-    if (!snap.metadata.hasPendingWrites) applic = d.applicability || {};
+    if (!snap.metadata.hasPendingWrites){ applic = d.applicability || {}; docLinks = d.docLinks || {}; }
     $("#clientName").textContent = d.clientName || "Client Onboarding";
     if (isStaff){
       if (document.activeElement !== $("#clientNameInput")) $("#clientNameInput").value = d.clientName || "";
@@ -365,12 +381,26 @@ $("#saveClient").addEventListener("click", async () => {
   finally { $("#saveClient").disabled = false; }
 });
 
+/* ---------- Signing links ---------- */
+function safeUrl(u){   // only plain https links are ever rendered or saved
+  try { const x = new URL(String(u||"").trim()); return x.protocol === "https:" ? x.href : ""; } catch { return ""; }
+}
+function signCell(t, na){
+  if (t.type !== "Document") return '<span class="signbtn" style="border:0">&mdash;</span>';
+  const url = safeUrl(docLinks[t.id]);
+  const btn = url
+    ? `<a class="signbtn" href="${esc(url)}" target="_blank" rel="noopener noreferrer" ${na?'aria-disabled="true" tabindex="-1"':""}>Sign document &#8599;</a>`
+    : `<span class="signbtn">Link coming soon</span>`;
+  const edit = isStaff ? `<button class="link editlink" data-act="editlink" data-name="${esc(t.name)}">${url?"Edit link":"Add link"}</button>` : "";
+  return btn + edit;
+}
+
 /* ---------- Render ---------- */
 function render(){
   const body = $("#rows");
   let html = "", last = null;
   for (const t of tasks){
-    if (t.phase !== last){ last = t.phase; html += `<tr class="phase"><td colspan="7">${esc(t.phase.replace(/^\d+\.\s*/, ""))}</td></tr>`; }
+    if (t.phase !== last){ last = t.phase; html += `<tr class="phase"><td colspan="8">${esc(t.phase.replace(/^\d+\.\s*/, ""))}</td></tr>`; }
     const s = get(t.id), na = s.applicable === "Not Applicable";
     html += `<tr data-id="${t.id}" class="${na?"na":""}">
       <td class="item"><strong>${esc(t.name)}</strong>
@@ -378,6 +408,7 @@ function render(){
       <td>${esc(t.short)}</td>
       <td class="col-party">${esc(t.party)}</td>
       <td>${esc(t.signer)}</td>
+      <td class="col-sign">${signCell(t, na)}</td>
       <td class="col-status"><select class="st" data-f="status" data-v="${esc(s.status)}" aria-label="Status for ${esc(t.name)}" ${na?"disabled":""}>
         ${STATUSES.map(o=>`<option${o===s.status?" selected":""}>${o}</option>`).join("")}</select></td>
       <td class="col-note"><textarea data-f="note" rows="1" placeholder="Add a note…" aria-label="Notes for ${esc(t.name)}" ${na?"disabled":""}>${esc(s.note)}</textarea></td>
@@ -421,6 +452,17 @@ function updateSummary(){
 }
 
 /* ---------- Events ---------- */
+$("#rows").addEventListener("click", e => {
+  const b = e.target.closest('[data-act="editlink"]'); if (!b || !isStaff) return;
+  const id = +b.closest("tr").dataset.id;
+  const cur = safeUrl(docLinks[id]);
+  const v = window.prompt("Signing link for " + b.dataset.name + " (this client only).\nPaste the full https:// link. Leave empty to remove it.", cur);
+  if (v === null) return;
+  const t = v.trim();
+  if (t && !safeUrl(t)) return window.alert("That doesn't look like a valid https:// link. Nothing was changed.");
+  save(id, {link: t ? safeUrl(t) : ""});
+  render();
+});
 $("#rows").addEventListener("change", e => {
   const el = e.target, f = el.dataset.f; if (!f) return;
   const tr = el.closest("tr"), id = +tr.dataset.id;

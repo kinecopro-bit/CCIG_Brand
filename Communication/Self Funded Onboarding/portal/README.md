@@ -8,7 +8,7 @@ Client-facing home page: timeline on top, full checklist below. Source content c
 - `firestore.rules` – security rules (publish in Firebase console → Firestore Database → Rules).
 
 ## Checklist columns
-Item · What This Covers · Responsible Party · Signer · **Status** (Not Started / Scheduled / In Progress / Complete / Submitted) · **Notes** · **Applicability** (Applicable / Not Applicable, staff only).
+Item · What This Covers · Responsible Party · Signer · **Sign** (button on document rows) · **Status** (Not Started / Scheduled / In Progress / Complete / Submitted) · **Notes** · **Applicability** (Applicable / Not Applicable, staff only).
 *Not Applicable* fades and greys the row and disables Status/Notes. "Hide items that don't apply" removes those rows from view.
 
 ## Sign-in (emailed link)
@@ -23,13 +23,19 @@ The page shows the sync badge: "Saved to CCIG portal" appears only after Firesto
 4. Create your first staff record (Firestore Database → Data → Start collection `staff` → Document ID = your **lowercase email**, any field, e.g. `active: true`). Only the console can create staff.
 5. Redeploy: `firebase deploy --only hosting`.
 
+### Signing links (per client, per document)
+Each row in "Documents to Sign" has a **Sign document** button that opens that client's own signing link (DocuSign, Adobe Sign, etc.) in a new tab.
+Staff see an **Add link / Edit link** button under it: paste the full `https://` link (empty removes it). Until a link is set, clients see "Link coming soon".
+Only `https://` links are accepted. Links are stored in `clients/{id}.docLinks` (staff write only), so one client never sees another's links.
+Marking the row Submitted/Complete is still done by the client; status does not update automatically.
+
 ### Adding a client
 1. Open `?client=<id>` and sign in as staff. A "CCIG staff tools" card appears.
 2. Enter the client name and approved emails (one per line), then Save.
 3. Send the client their link. Staff can set Applicability per item on the same page.
 
 ## Data model
-- `clients/{id}`: `clientName`, `allowedEmails[]`, `applicability{taskId: ...}`. Staff write only.
+- `clients/{id}`: `clientName`, `allowedEmails[]`, `applicability{taskId: ...}`, `docLinks{taskId: https-url}`. Staff write only.
 - `clients/{id}/progress/main`: `items{taskId: {status, note}}`. Staff and approved client emails.
 - `staff/{email}`: marks approved CCIG staff. Console only.
 
