@@ -1,11 +1,46 @@
 rules_version = '2';
-// Starting-point rules for the onboarding portal. TEMPLATE: open read/write on
-// clients/{clientId}. Before real client data goes in, require sign-in and
-// restrict the "applicable" field to approved CCIG users (see README).
+
+// Self-Funded Onboarding portal.
+//
+//  staff/{email}                      Approved CCIG staff. Document ID = the staff member's lowercase email.
+//                                     Create these in the Firebase console only (nobody can write them from the app).
+//  clients/{clientId}                 clientName, allowedEmails[] (lowercase), applicability{ taskId: "Applicable" | "Not Applicable" }
+//                                     Readable by staff and the client's approved emails. Writable by STAFF ONLY,
+//                                     so only staff can change Applicability or who has access.
+//  clients/{clientId}/progress/main   items{ taskId: { status, note } }
+//                                     Readable and writable by staff and the client's approved emails.
+//
+// Everyone must be signed in with a VERIFIED email (email-link sign-in verifies it).
 service cloud.firestore {
   match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null && request.auth.token.email_verified == true;
+    }
+    function email() {
+      return request.auth.token.email.lower();
+    }
+    function isStaff() {
+      return signedIn() && exists(/databases/$(database)/documents/staff/$(email()));
+    }
+    function isMember(clientId) {
+      return signedIn()
+        && email() in get(/databases/$(database)/documents/clients/$(clientId)).data.allowedEmails;
+    }
+
+    // A signed-in user may check only their own staff record (lets the page show the staff tools).
+    match /staff/{staffEmail} {
+      allow get: if signedIn() && email() == staffEmail;
+      allow list, write: if false;
+    }
+
     match /clients/{clientId} {
-      allow read, write: if true;   // TEMPLATE ONLY - tighten before production
+      allow read: if isStaff() || isMember(clientId);
+      allow write: if isStaff();
+
+      match /progress/{docId} {
+        allow read, write: if isStaff() || isMember(clientId);
+      }
     }
   }
 }

@@ -71,6 +71,25 @@
   tr.na td.col-app{opacity:1;filter:none;background:#f3f3f3}
   tr.na td.col-status select,tr.na td.col-note textarea{pointer-events:none}
   .locked-note{font-size:12px;color:#5b6f7a;margin-top:4px}
+
+  /* Auth + staff */
+  .topbar{max-width:1280px;margin:0 auto;padding:10px 16px 0;display:flex;justify-content:flex-end;align-items:center;gap:12px;font-size:14px}
+  .topbar .who{color:var(--lightblue);font-weight:600}
+  button,.btn{font:inherit;font-weight:600;border:0;border-radius:6px;padding:9px 18px;cursor:pointer;background:var(--lightblue);color:var(--white)}
+  button:hover{background:var(--darkblue)}
+  button.link{background:none;color:var(--lightblue);padding:4px 8px;text-decoration:underline}
+  button.link:hover{background:none;color:var(--darkblue)}
+  button:disabled{opacity:.5;cursor:default}
+  input[type=email]{font:inherit;color:var(--darkblue);border:1px solid var(--grey);border-radius:6px;padding:9px 12px;width:100%;max-width:360px}
+  .auth-card{max-width:520px;margin:32px auto}
+  .auth-row{display:flex;gap:10px;flex-wrap:wrap;margin:14px 0 8px}
+  .msg{font-size:14px;margin:8px 0 0}
+  .msg.err{color:#9a2b1f} .msg.good{color:#3d6b12}
+  .hidden{display:none!important}
+  .staff h3{font-size:18px;margin-bottom:8px}
+  .staff label{display:block;font-weight:600;margin:12px 0 4px;font-size:14px}
+  .staff input[type=text]{font:inherit;border:1px solid var(--grey);border-radius:6px;padding:8px 10px;width:100%;max-width:420px}
+  .staff textarea{min-height:90px;max-width:520px}
   @media(max-width:700px){
     .timeline{grid-template-columns:1fr;gap:18px}.timeline::before{display:none}
     header.hero h1{font-size:26px} .card{padding:18px}
@@ -85,7 +104,37 @@
   <p class="sub">This is the full path from today to go-live. Five phases, each with its own short checklist. Update the status of each item as you go, and leave a note for your CCIG team whenever something needs context.</p>
 </header>
 
+<div class="topbar hidden" id="topbar"><span class="who" id="who"></span><button class="link" id="signOut">Sign out</button></div>
+
 <main>
+  <section class="card auth-card hidden" id="authView" aria-labelledby="ah">
+    <h2 id="ah">Sign in</h2>
+    <p class="lead">Enter your work email and we'll send you a one-time sign-in link. No password needed.</p>
+    <div class="auth-row">
+      <input type="email" id="emailInput" placeholder="you@company.com" autocomplete="email" aria-label="Email address">
+      <button id="sendLink">Email me a link</button>
+    </div>
+    <p class="msg" id="authMsg" role="status"></p>
+  </section>
+
+  <section class="card auth-card hidden" id="noAccess">
+    <h2>No access to this page</h2>
+    <p class="lead" id="noAccessText">This email isn't on the access list for this client. Please contact your CCIG team.</p>
+    <button id="noAccessOut">Sign out</button>
+  </section>
+
+  <section class="card staff hidden" id="staffPanel" aria-labelledby="sh">
+    <h2 id="sh">CCIG staff tools</h2>
+    <p class="lead">Only visible to approved CCIG staff. Controls who can open this client's page.</p>
+    <label for="clientNameInput">Client name</label>
+    <input type="text" id="clientNameInput" placeholder="Example Employer, Inc.">
+    <label for="emailsInput">Approved client emails (one per line)</label>
+    <textarea id="emailsInput" placeholder="hr@example.com&#10;cfo@example.com"></textarea>
+    <p><button id="saveClient">Save client access</button></p>
+    <p class="msg" id="staffMsg" role="status"></p>
+  </section>
+
+  <div id="appView" class="hidden">
   <section class="card" aria-labelledby="tlh">
     <h2 id="tlh">Timeline</h2>
     <p class="lead">Estimated weeks from kickoff to your plan's effective date.</p>
@@ -115,6 +164,7 @@
     </div>
     <p class="locked-note" id="appNote"></p>
   </section>
+  </div>
 </main>
 
 <script>
@@ -122,7 +172,6 @@ window.TASKS = [{"id": 1, "phase": "1. Kickoff & Implementation Calls", "name": 
 </script>
 <script type="module">
 const FB = "https://www.gstatic.com/firebasejs/11.0.2/";
-let setDoc;
 
 /* ---------- Config ---------- */
 const firebaseConfig = {
@@ -133,10 +182,6 @@ const firebaseConfig = {
   messagingSenderId: "381052623625",
   appId: "1:381052623625:web:2a5c6c0e3311158b2d91d8"
 };
-
-// TEMPLATE MODE: anyone can change Applicability. For production set this to false
-// and enable it only for approved CCIG users (see README / firestore.rules).
-const CAN_EDIT_APPLICABILITY = true;
 
 const STATUSES = ["Not Started","Scheduled","In Progress","Complete","Submitted"];
 const DONE = new Set(["Complete","Submitted"]);
@@ -150,23 +195,30 @@ const TIMELINE = [
 
 const tasks = window.TASKS;
 const clientId = (new URLSearchParams(location.search).get("client") || "template").replace(/[^\w-]/g,"").slice(0,64) || "template";
-let state = {};   // { [id]: {status, note, applicable} }
+const pageUrl = location.origin + location.pathname + "?client=" + encodeURIComponent(clientId);
+
+/* Data model
+   clients/{clientId}                 clientName, allowedEmails[], applicability{id: "Applicable"|"Not Applicable"}  (staff write)
+   clients/{clientId}/progress/main   items{id: {status, note}}                                                      (client + staff write)
+   staff/{email}                      exists => approved CCIG staff (created in the Firebase console)               */
+let progress = {};      // { [id]: {status, note} }
+let applic = {};        // { [id]: "Not Applicable" }
+let isStaff = false;
 
 const $ = s => document.querySelector(s);
 const esc = s => String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const phaseNum = t => parseInt(t.phase, 10);
-const get = id => ({status:"Not Started", note:"", applicable:"Applicable", ...(state[id]||{})});
+const get = id => ({status:"Not Started", note:"", ...(progress[id]||{}), applicable: applic[id] || "Applicable"});
+const show = (sel, on) => $(sel).classList.toggle("hidden", !on);
+function setMsg(sel, text, cls){ const el=$(sel); el.textContent=text||""; el.className="msg "+(cls||""); }
 
-/* ---------- Persistence: Firestore, with localStorage fallback ---------- */
-const LS_KEY = "ccig-selffunded-"+clientId;
-let ref = null, remote = false;
-function setSync(text, cls){ const el=$("#syncState"); el.textContent=text; el.className="badge "+cls; }
-
-// The badge only says "Saved" once the Firestore SERVER has confirmed it.
+/* ---------- Sync badge: "Saved" only after the SERVER confirms ---------- */
+let db, auth, F = {}, A = {};          // firebase modules
+let clientRef, progressRef, unsubs = [];
 let serverSeen = false, inflight = 0, slowTimer = null, failMsg = "";
 const SLOW_MS = 8000;
+function setSync(text, cls){ const el=$("#syncState"); el.textContent=text; el.className="badge "+cls; }
 function refreshBadge(slow){
-  if (!ref) return;                       // offline fallback owns the badge
   if (failMsg) return setSync(failMsg, "warn");
   if (inflight > 0) return setSync(slow ? "Not saved yet: can't reach the server" : "Saving…", slow ? "warn" : "");
   if (!serverSeen) return setSync(slow ? "Can't reach the server: changes are NOT shared" : "Connecting…", slow ? "warn" : "");
@@ -177,54 +229,141 @@ function armSlowTimer(){
   slowTimer = setTimeout(() => { if (inflight > 0 || !serverSeen) refreshBadge(true); }, SLOW_MS);
 }
 
-render();
-try {
-  const { initializeApp } = await import(FB+"firebase-app.js");
-  const fs = await import(FB+"firebase-firestore.js");
-  const { getFirestore, doc, onSnapshot } = fs;
-  setDoc = fs.setDoc;
-  const db = getFirestore(initializeApp(firebaseConfig));
-  ref = doc(db, "clients", clientId);
-  setSync("Connecting…", ""); armSlowTimer();
-  onSnapshot(ref, { includeMetadataChanges: true }, snap => {
-    remote = true;
-    if (!snap.metadata.fromCache) { serverSeen = true; failMsg = ""; }   // data came from the server
-    const d = snap.data() || {};
-    if (d.clientName) $("#clientName").textContent = d.clientName;
-    if (!snap.metadata.hasPendingWrites) state = d.items || {};   // keep local edits until the server accepts them
-    refreshBadge();
-    // don't clobber a note the user is typing in
-    if (!document.activeElement || document.activeElement.tagName !== "TEXTAREA") render();
-    else updateSummary();
-  }, err => { console.warn(err); fallbackLocal(err.code || err.message); });
-} catch(e){ console.warn(e); fallbackLocal(e.code || e.message); }
-
-
-function fallbackLocal(reason){
-  remote = false; ref = null; clearTimeout(slowTimer);
-  try { state = {...JSON.parse(localStorage.getItem(LS_KEY)||"{}"), ...state}; } catch {}
-  setSync("Offline" + (reason ? " ("+reason+")" : "") + ": saving in this browser only","warn");
-  render();
-}
-
-const pending = {};
+/* ---------- Saving ---------- */
+const pendingProg = {}, pendingApp = {};
 let timer = null;
 function save(id, patch){
-  state[id] = {...get(id), ...patch};
-  pending[id] = state[id];
-  clearTimeout(timer);
-  timer = setTimeout(flush, 500);
+  if ("applicable" in patch){
+    if (!isStaff) return;
+    applic[id] = patch.applicable; pendingApp[id] = patch.applicable;
+  }
+  const p = {}; if ("status" in patch) p.status = patch.status; if ("note" in patch) p.note = patch.note;
+  if (Object.keys(p).length){ progress[id] = {...(progress[id]||{status:"Not Started",note:""}), ...p}; pendingProg[id] = {...pendingProg[id], ...p}; }
+  clearTimeout(timer); timer = setTimeout(flush, 500);
 }
 async function flush(){
-  const batch = {...pending}; for (const k in pending) delete pending[k];
-  if (ref && setDoc) {
-    inflight++; refreshBadge(); armSlowTimer();
-    try { await setDoc(ref, {items: batch, updatedAt: Date.now()}, {merge:true}); serverSeen = true; failMsg = ""; return; }   // resolves only after the server confirms
-    catch(e){ console.warn(e); failMsg = "Not saved: " + (e.code === "permission-denied" ? "access denied by Firestore rules" : (e.code || "error")); }
-    finally { inflight--; refreshBadge(); }
-  }
-  try { localStorage.setItem(LS_KEY, JSON.stringify(state)); } catch {}
+  const prog = {...pendingProg}, app = {...pendingApp};
+  for (const k in pendingProg) delete pendingProg[k];
+  for (const k in pendingApp) delete pendingApp[k];
+  const jobs = [];
+  if (Object.keys(prog).length) jobs.push(F.setDoc(progressRef, {items: prog, updatedAt: Date.now()}, {merge:true}));
+  if (Object.keys(app).length)  jobs.push(F.setDoc(clientRef, {applicability: app}, {merge:true}));
+  if (!jobs.length) return;
+  inflight++; refreshBadge(); armSlowTimer();
+  try { await Promise.all(jobs); serverSeen = true; failMsg = ""; }   // resolves only after the server confirms
+  catch(e){ console.warn(e); failMsg = "Not saved: " + (e.code === "permission-denied" ? "access denied by Firestore rules" : (e.code || "error")); }
+  finally { inflight--; refreshBadge(); }
 }
+
+/* ---------- Auth ---------- */
+const EMAIL_KEY = "ccig-selffunded-email";
+try {
+  const { initializeApp } = await import(FB+"firebase-app.js");
+  F = await import(FB+"firebase-firestore.js");
+  A = await import(FB+"firebase-auth.js");
+  const app = initializeApp(firebaseConfig);
+  db = F.getFirestore(app); auth = A.getAuth(app);
+} catch(e){
+  console.warn(e);
+  show("#authView", true); setMsg("#authMsg", "Could not load the sign-in service. Check your connection and refresh.", "err");
+  throw e;
+}
+
+// Returning from the emailed link
+if (A.isSignInWithEmailLink(auth, location.href)) {
+  let email = ""; try { email = localStorage.getItem(EMAIL_KEY) || ""; } catch {}
+  if (!email) email = (window.prompt("Please confirm your email address to finish signing in:") || "").trim();
+  try {
+    await A.signInWithEmailLink(auth, email.toLowerCase(), location.href);
+    try { localStorage.removeItem(EMAIL_KEY); } catch {}
+  } catch(e){
+    console.warn(e);
+    setMsg("#authMsg", e.code === "auth/invalid-action-code" ? "That sign-in link has expired or was already used. Request a new one." : "Could not sign in with that link. Request a new one.", "err");
+  }
+  history.replaceState(null, "", pageUrl);   // drop the one-time code from the address bar
+}
+
+$("#sendLink").addEventListener("click", async () => {
+  const email = $("#emailInput").value.trim().toLowerCase();
+  if (!/^\S+@\S+\.\S+$/.test(email)) return setMsg("#authMsg", "Enter a valid email address.", "err");
+  $("#sendLink").disabled = true; setMsg("#authMsg", "Sending…");
+  try {
+    await A.sendSignInLinkToEmail(auth, email, {url: pageUrl, handleCodeInApp: true});
+    try { localStorage.setItem(EMAIL_KEY, email); } catch {}
+    setMsg("#authMsg", "Check your inbox (and spam folder) for the sign-in link. You can close this tab.", "good");
+  } catch(e){
+    console.warn(e);
+    setMsg("#authMsg", e.code === "auth/operation-not-allowed" ? "Email-link sign-in isn't enabled yet. Please contact your CCIG team." : "Could not send the link. Please try again.", "err");
+  } finally { $("#sendLink").disabled = false; }
+});
+$("#emailInput").addEventListener("keydown", e => { if (e.key === "Enter") $("#sendLink").click(); });
+const doSignOut = () => A.signOut(auth);
+$("#signOut").addEventListener("click", doSignOut);
+$("#noAccessOut").addEventListener("click", doSignOut);
+
+A.onAuthStateChanged(auth, async user => {
+  unsubs.forEach(u => u()); unsubs = [];
+  progress = {}; applic = {}; isStaff = false; serverSeen = false; failMsg = "";
+  show("#appView", false); show("#staffPanel", false); show("#noAccess", false);
+  if (!user){ show("#authView", true); show("#topbar", false); return; }
+  show("#authView", false); show("#topbar", true);
+  const email = (user.email || "").toLowerCase();
+  $("#who").textContent = "Signed in as " + email;
+
+  try { isStaff = (await F.getDoc(F.doc(db, "staff", email))).exists(); } catch { isStaff = false; }
+
+  clientRef = F.doc(db, "clients", clientId);
+  progressRef = F.doc(db, "clients", clientId, "progress", "main");
+  show("#staffPanel", isStaff);
+  setSync("Connecting…", ""); armSlowTimer();
+  render();   // empty checklist shell until data arrives
+
+  let denied = false;
+  const onErr = err => {
+    console.warn(err);
+    if (err.code === "permission-denied" && !isStaff){
+      denied = true; show("#appView", false); show("#noAccess", true);
+    } else { failMsg = "Can't load data: " + (err.code || "error"); refreshBadge(); }
+  };
+  show("#appView", true);
+  unsubs.push(F.onSnapshot(clientRef, {includeMetadataChanges:true}, snap => {
+    if (denied) return;
+    const d = snap.data() || {};
+    if (!snap.metadata.hasPendingWrites) applic = d.applicability || {};
+    $("#clientName").textContent = d.clientName || "Client Onboarding";
+    if (isStaff){
+      if (document.activeElement !== $("#clientNameInput")) $("#clientNameInput").value = d.clientName || "";
+      if (document.activeElement !== $("#emailsInput")) $("#emailsInput").value = (d.allowedEmails || []).join("\n");
+      if (!snap.exists() && !snap.metadata.fromCache) setMsg("#staffMsg", "This client hasn't been set up yet. Add a name and approved emails, then save.", "");
+    }
+    softRender();
+  }, onErr));
+  unsubs.push(F.onSnapshot(progressRef, {includeMetadataChanges:true}, snap => {
+    if (denied) return;
+    if (!snap.metadata.fromCache) { serverSeen = true; failMsg = ""; }
+    if (!snap.metadata.hasPendingWrites) progress = (snap.data() || {}).items || {};
+    refreshBadge();
+    softRender();
+  }, onErr));
+});
+
+function softRender(){   // don't clobber a note the user is typing in
+  if (!document.activeElement || document.activeElement.tagName !== "TEXTAREA") render(); else updateSummary();
+}
+
+/* ---------- Staff tools ---------- */
+$("#saveClient").addEventListener("click", async () => {
+  if (!isStaff) return;
+  const emails = [...new Set($("#emailsInput").value.split(/[\s,;]+/).map(e => e.trim().toLowerCase()).filter(Boolean))];
+  const bad = emails.find(e => !/^\S+@\S+\.\S+$/.test(e));
+  if (bad) return setMsg("#staffMsg", "Not a valid email: " + bad, "err");
+  $("#saveClient").disabled = true; setMsg("#staffMsg", "Saving…");
+  try {
+    await F.setDoc(clientRef, {clientName: $("#clientNameInput").value.trim(), allowedEmails: emails}, {merge:true});
+    setMsg("#staffMsg", "Saved. " + emails.length + " approved email" + (emails.length===1?"":"s") + ".", "good");
+  } catch(e){ console.warn(e); setMsg("#staffMsg", "Could not save: " + (e.code || "error"), "err"); }
+  finally { $("#saveClient").disabled = false; }
+});
 
 /* ---------- Render ---------- */
 function render(){
@@ -242,13 +381,13 @@ function render(){
       <td class="col-status"><select class="st" data-f="status" data-v="${esc(s.status)}" aria-label="Status for ${esc(t.name)}" ${na?"disabled":""}>
         ${STATUSES.map(o=>`<option${o===s.status?" selected":""}>${o}</option>`).join("")}</select></td>
       <td class="col-note"><textarea data-f="note" rows="1" placeholder="Add a note…" aria-label="Notes for ${esc(t.name)}" ${na?"disabled":""}>${esc(s.note)}</textarea></td>
-      <td class="col-app"><select data-f="applicable" aria-label="Applicability for ${esc(t.name)}" ${CAN_EDIT_APPLICABILITY?"":"disabled"}>
+      <td class="col-app"><select data-f="applicable" aria-label="Applicability for ${esc(t.name)}" ${isStaff?"":"disabled"}>
         ${["Applicable","Not Applicable"].map(o=>`<option${o===s.applicable?" selected":""}>${o}</option>`).join("")}</select></td>
     </tr>`;
   }
   body.innerHTML = html;
   body.querySelectorAll("textarea").forEach(autoGrow);
-  $("#appNote").textContent = CAN_EDIT_APPLICABILITY ? "" : "Applicability is set by your CCIG team.";
+  $("#appNote").textContent = isStaff ? "" : "Applicability is set by your CCIG team.";
   applyHide();
   updateSummary();
 }
@@ -285,7 +424,7 @@ function updateSummary(){
 $("#rows").addEventListener("change", e => {
   const el = e.target, f = el.dataset.f; if (!f) return;
   const tr = el.closest("tr"), id = +tr.dataset.id;
-  if (f === "applicable" && !CAN_EDIT_APPLICABILITY) return;
+  if (f === "applicable" && !isStaff) return;
   save(id, {[f]: el.value});
   if (f === "status") el.dataset.v = el.value;
   if (f === "applicable"){ tr.classList.toggle("na", el.value === "Not Applicable");
@@ -297,8 +436,6 @@ $("#rows").addEventListener("input", e => {
   if (e.target.dataset.f === "note"){ autoGrow(e.target); save(+e.target.closest("tr").dataset.id, {note:e.target.value}); }
 });
 $("#hideNA").addEventListener("change", applyHide);
-
-render();
 </script>
 </body>
 </html>
