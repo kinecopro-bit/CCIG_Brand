@@ -14,7 +14,7 @@ Selecting *Not Applicable* greys out and fades the row and disables Status/Notes
 ## Firebase
 Data lives in Firestore at `clients/{clientId}`; open the page with `?client=acme-inc` for a per-client copy (default `template`). Fields: `items.{taskId}.{status,note,applicable}`.
 If Firestore is unreachable the page falls back to browser localStorage.
-Enable Firestore in the `client-self-funded-onboarding` project (Build → Firestore Database) before first use.
+Enable Firestore in the `self-funded-onboarding` project (Build → Firestore Database) before first use.
 
 ## Locking Applicability (production)
 In the template every viewer can change Applicability. To restrict it to approved CCIG users:
