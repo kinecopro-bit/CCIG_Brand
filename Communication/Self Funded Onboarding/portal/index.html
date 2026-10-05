@@ -162,6 +162,21 @@ const LS_KEY = "ccig-selffunded-"+clientId;
 let ref = null, remote = false;
 function setSync(text, cls){ const el=$("#syncState"); el.textContent=text; el.className="badge "+cls; }
 
+// The badge only says "Saved" once the Firestore SERVER has confirmed it.
+let serverSeen = false, inflight = 0, slowTimer = null, failMsg = "";
+const SLOW_MS = 8000;
+function refreshBadge(slow){
+  if (!ref) return;                       // offline fallback owns the badge
+  if (failMsg) return setSync(failMsg, "warn");
+  if (inflight > 0) return setSync(slow ? "Not saved yet: can't reach the server" : "Saving…", slow ? "warn" : "");
+  if (!serverSeen) return setSync(slow ? "Can't reach the server: changes are NOT shared" : "Connecting…", slow ? "warn" : "");
+  setSync("Saved to CCIG portal", "ok");
+}
+function armSlowTimer(){
+  clearTimeout(slowTimer);
+  slowTimer = setTimeout(() => { if (inflight > 0 || !serverSeen) refreshBadge(true); }, SLOW_MS);
+}
+
 render();
 try {
   const { initializeApp } = await import(FB+"firebase-app.js");
@@ -170,23 +185,25 @@ try {
   setDoc = fs.setDoc;
   const db = getFirestore(initializeApp(firebaseConfig));
   ref = doc(db, "clients", clientId);
-  onSnapshot(ref, snap => {
+  setSync("Connecting…", ""); armSlowTimer();
+  onSnapshot(ref, { includeMetadataChanges: true }, snap => {
     remote = true;
+    if (!snap.metadata.fromCache) { serverSeen = true; failMsg = ""; }   // data came from the server
     const d = snap.data() || {};
     if (d.clientName) $("#clientName").textContent = d.clientName;
-    state = d.items || {};
-    setSync("Saved to CCIG portal","ok");
+    if (!snap.metadata.hasPendingWrites) state = d.items || {};   // keep local edits until the server accepts them
+    refreshBadge();
     // don't clobber a note the user is typing in
     if (!document.activeElement || document.activeElement.tagName !== "TEXTAREA") render();
     else updateSummary();
-  }, err => { console.warn(err); fallbackLocal(); });
-} catch(e){ console.warn(e); fallbackLocal(); }
+  }, err => { console.warn(err); fallbackLocal(err.code || err.message); });
+} catch(e){ console.warn(e); fallbackLocal(e.code || e.message); }
 
 
-function fallbackLocal(){
-  remote = false; ref = null;
+function fallbackLocal(reason){
+  remote = false; ref = null; clearTimeout(slowTimer);
   try { state = {...JSON.parse(localStorage.getItem(LS_KEY)||"{}"), ...state}; } catch {}
-  setSync("Offline: saving in this browser only","warn");
+  setSync("Offline" + (reason ? " ("+reason+")" : "") + ": saving in this browser only","warn");
   render();
 }
 
@@ -201,8 +218,10 @@ function save(id, patch){
 async function flush(){
   const batch = {...pending}; for (const k in pending) delete pending[k];
   if (ref && setDoc) {
-    try { await setDoc(ref, {items: batch, updatedAt: Date.now()}, {merge:true}); return; }
-    catch(e){ console.warn(e); setSync("Could not save. Check connection.","warn"); }
+    inflight++; refreshBadge(); armSlowTimer();
+    try { await setDoc(ref, {items: batch, updatedAt: Date.now()}, {merge:true}); serverSeen = true; failMsg = ""; return; }   // resolves only after the server confirms
+    catch(e){ console.warn(e); failMsg = "Not saved: " + (e.code === "permission-denied" ? "access denied by Firestore rules" : (e.code || "error")); }
+    finally { inflight--; refreshBadge(); }
   }
   try { localStorage.setItem(LS_KEY, JSON.stringify(state)); } catch {}
 }
