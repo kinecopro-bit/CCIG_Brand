@@ -127,6 +127,7 @@
   <section class="card auth-card hidden" id="noAccess">
     <h2>No access to this page</h2>
     <p class="lead" id="noAccessText">This email isn't on the access list for this client. Please contact your CCIG team.</p>
+    <p class="msg" id="noAccessDetail" style="word-break:break-all"></p>
     <button id="noAccessOut">Sign out</button>
   </section>
 
@@ -326,7 +327,12 @@ A.onAuthStateChanged(auth, async user => {
   const email = (user.email || "").toLowerCase();
   $("#who").textContent = "Signed in as " + email;
 
-  try { isStaff = (await F.getDoc(F.doc(db, "staff", email))).exists(); } catch { isStaff = false; }
+  let staffCheck = "";
+  try {
+    const sd = await F.getDoc(F.doc(db, "staff", email));
+    isStaff = sd.exists();
+    staffCheck = isStaff ? "found" : 'no staff document with ID "' + email + '"';
+  } catch(e) { isStaff = false; staffCheck = "error: " + (e.code || e.message); console.warn("staff check failed", e); }
 
   clientRef = F.doc(db, "clients", clientId);
   progressRef = F.doc(db, "clients", clientId, "progress", "main");
@@ -339,6 +345,7 @@ A.onAuthStateChanged(auth, async user => {
     console.warn(err);
     if (err.code === "permission-denied" && !isStaff){
       denied = true; show("#appView", false); show("#noAccess", true);
+      $("#noAccessDetail").textContent = "Signed in as " + email + " | Staff check: " + staffCheck + " | Client: " + clientId;
     } else { failMsg = "Can't load data: " + (err.code || "error"); refreshBadge(); }
   };
   show("#appView", true);
