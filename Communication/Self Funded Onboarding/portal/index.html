@@ -28,7 +28,12 @@
   /* Timeline */
   .timeline{display:grid;grid-template-columns:repeat(5,1fr);gap:0;position:relative;margin-top:8px}
   .timeline::before{content:"";position:absolute;top:22px;left:10%;right:10%;height:4px;background:var(--grey);z-index:0}
-  .tl-step{position:relative;z-index:1;text-align:center;padding:0 8px}
+  .tl-step{position:relative;z-index:1;text-align:center;padding:0 8px;appearance:none;border:0;background:none;color:inherit;font:inherit;cursor:pointer;border-radius:8px}
+  button.tl-step:hover{background:none}
+  .tl-step:hover .tl-title{text-decoration:underline}
+  .tl-step:hover .tl-dot{transform:scale(1.08)}
+  .tl-step:focus-visible{outline:2px solid var(--lightblue);outline-offset:2px}
+  .tl-dot{transition:transform .15s}
   .tl-dot{width:44px;height:44px;border-radius:50%;margin:0 auto 10px;background:var(--darkblue);color:var(--white);font-weight:700;font-size:18px;display:flex;align-items:center;justify-content:center;border:4px solid var(--white);box-shadow:0 0 0 2px var(--lightblue)}
   .tl-step.done .tl-dot{background:var(--green);box-shadow:0 0 0 2px var(--green)}
   .tl-step.active .tl-dot{background:var(--yellow);color:var(--darkblue);box-shadow:0 0 0 2px var(--yellow)}
@@ -506,9 +511,9 @@ function updateSummary(){
     const complete = agg.t>0 && agg.d===agg.t;
     let cls = "";
     if (complete) cls = "done"; else if (!activeSet){ cls = "active"; activeSet = true; }
-    return `<div class="tl-step ${cls}"><div class="tl-dot">${complete?"&#10003;":st.n}</div>
+    return `<button type="button" class="tl-step ${cls}" data-tab="${st.phases[0]}" aria-label="Go to checklist section ${st.n}: ${esc(st.title)}"><div class="tl-dot">${complete?"&#10003;":st.n}</div>
       <div class="tl-title">${esc(st.title)}</div><div class="tl-when">${esc(st.when)}</div>
-      <div class="tl-prog">${agg.t?`${agg.d} of ${agg.t} complete`:"No items"}</div></div>`;
+      <div class="tl-prog">${agg.t?`${agg.d} of ${agg.t} complete`:"No items"}</div></button>`;
   }).join("");
   $("#overallCount").textContent = `${done} of ${total} items complete or submitted`;
   $("#overallFill").style.width = (total? done/total*100 : 0)+"%";
@@ -542,6 +547,12 @@ $("#rows").addEventListener("input", e => {
 });
 $("#hideNA").addEventListener("change", applyHide);
 buildTabs(); updateTabs();
+$("#timeline").addEventListener("click", e => {   // timeline step -> matching checklist tab
+  const b = e.target.closest(".tl-step"); if (!b) return;
+  selectTab(+b.dataset.tab, true);
+  const calm = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+  $("#clh").scrollIntoView({behavior: calm ? "auto" : "smooth", block: "start"});
+});
 $("#tabs").addEventListener("click", e => { const b = e.target.closest(".tab"); if (b) selectTab(+b.dataset.tab); });
 $("#tabs").addEventListener("keydown", e => {
   const i = PHASES.indexOf(activeTab); let j = -1;
