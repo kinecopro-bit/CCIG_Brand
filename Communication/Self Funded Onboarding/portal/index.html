@@ -72,6 +72,19 @@
   tr.na td.col-status select,tr.na td.col-note textarea{pointer-events:none}
   .locked-note{font-size:12px;color:#5b6f7a;margin-top:4px}
 
+  /* Section tabs */
+  .tabs{display:flex;flex-wrap:wrap;background:var(--lightgrey);border:1px solid var(--grey);border-bottom:0;border-radius:8px 8px 0 0;margin-top:4px}
+  .tab{flex:1 1 170px;appearance:none;border:0;border-bottom:3px solid transparent;background:transparent;cursor:pointer;font:inherit;text-align:left;padding:12px 14px 10px;color:var(--lightblue);transition:background .15s}
+  .tab:hover{background:rgba(54,110,142,.08)}
+  .tab:focus-visible{outline:2px solid var(--lightblue);outline-offset:-2px}
+  .tab[aria-selected="true"]{background:var(--white);color:var(--darkblue);border-bottom-color:var(--green)}
+  .tab .kick{display:block;font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#6b7c86}
+  .tab[aria-selected="true"] .kick{color:var(--lightblue)}
+  .tab .nm{display:block;font-weight:700;font-size:14.5px;line-height:1.25;margin:2px 0 4px}
+  .tab .ct{display:inline-block;font-size:12px;font-weight:600;background:rgba(21,50,67,.08);border-radius:999px;padding:1px 9px}
+  .tab.alldone .ct{background:#dcebc3;color:#3d6b12}
+  .tabpanel{border:1px solid var(--grey);border-top:0;border-radius:0 0 8px 8px}
+  .tabpanel .table-wrap{border-radius:0 0 8px 8px}
   /* Sign buttons */
   td.col-sign{width:150px;white-space:nowrap}
   a.signbtn{display:inline-block;font-weight:700;font-size:14px;text-decoration:none;background:var(--green);color:var(--darkblue);border-radius:6px;padding:8px 14px}
@@ -161,6 +174,8 @@
       <span class="grow"></span>
       <label><input type="checkbox" id="hideNA"> Hide items that don't apply</label>
     </div>
+    <div class="tabs" id="tabs" role="tablist" aria-label="Checklist sections"></div>
+    <div class="tabpanel" id="tabpanel" role="tabpanel">
     <div class="table-wrap">
       <table>
         <thead><tr>
@@ -169,6 +184,7 @@
         </tr></thead>
         <tbody id="rows"></tbody>
       </table>
+    </div>
     </div>
     <p class="locked-note" id="appNote"></p>
   </section>
@@ -218,6 +234,7 @@ let progress = {};      // { [id]: {status, note} }
 let applic = {};        // { [id]: "Not Applicable" }
 let docLinks = {};      // { [id]: "https://…" }  signing link for THIS client (staff write only)
 let isStaff = false;
+let activeTab = 1;      // phase number shown in the checklist
 
 const $ = s => document.querySelector(s);
 const esc = s => String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
@@ -382,8 +399,6 @@ async function startSession(user){
   }, onErr));
 }
 
-if (REQUIRE_SIGN_IN) A.onAuthStateChanged(auth, startSession);
-else startSession({email:""});
 
 function softRender(){   // don't clobber a note the user is typing in
   if (!document.activeElement || document.activeElement.tagName !== "TEXTAREA") render(); else updateSummary();
@@ -417,12 +432,37 @@ function signCell(t, na){
   return btn + edit;
 }
 
+/* ---------- Section tabs ---------- */
+const phaseName = n => tasks.find(t => phaseNum(t) === n).phase.replace(/^\d+\.\s*/, "");
+const PHASES = [...new Set(tasks.map(phaseNum))];
+function buildTabs(){
+  $("#tabs").innerHTML = PHASES.map(n => `<button class="tab" role="tab" id="tab-${n}" data-tab="${n}" aria-controls="tabpanel">
+    <span class="kick">Section ${n}</span><span class="nm">${esc(phaseName(n))}</span><span class="ct"></span></button>`).join("");
+  $("#tabpanel").setAttribute("aria-labelledby", "tab-" + activeTab);
+}
+function updateTabs(){
+  for (const n of PHASES){
+    const btn = $("#tab-" + n); if (!btn) continue;
+    let total = 0, done = 0;
+    for (const t of tasks){ if (phaseNum(t) !== n) continue; const s = get(t.id); if (s.applicable === "Not Applicable") continue; total++; if (DONE.has(s.status)) done++; }
+    btn.setAttribute("aria-selected", n === activeTab ? "true" : "false");
+    btn.tabIndex = n === activeTab ? 0 : -1;
+    btn.classList.toggle("alldone", total > 0 && done === total);
+    btn.querySelector(".ct").textContent = total ? (total === done ? "\u2713 " : "") + done + " of " + total + " done" : "None apply";
+  }
+  $("#tabpanel").setAttribute("aria-labelledby", "tab-" + activeTab);
+}
+function selectTab(n, focus){
+  activeTab = n; render();
+  if (focus) $("#tab-" + n).focus();
+}
+
 /* ---------- Render ---------- */
 function render(){
   const body = $("#rows");
-  let html = "", last = null;
+  let html = "";
   for (const t of tasks){
-    if (t.phase !== last){ last = t.phase; html += `<tr class="phase"><td colspan="8">${esc(t.phase.replace(/^\d+\.\s*/, ""))}</td></tr>`; }
+    if (phaseNum(t) !== activeTab) continue;
     const s = get(t.id), na = s.applicable === "Not Applicable";
     html += `<tr data-id="${t.id}" class="${na?"na":""}">
       <td class="item"><strong>${esc(t.name)}</strong>
@@ -451,6 +491,7 @@ function applyHide(){
 }
 
 function updateSummary(){
+  updateTabs();
   const byPhase = {};
   let total = 0, done = 0;
   for (const t of tasks){
@@ -500,6 +541,19 @@ $("#rows").addEventListener("input", e => {
   if (e.target.dataset.f === "note"){ autoGrow(e.target); save(+e.target.closest("tr").dataset.id, {note:e.target.value}); }
 });
 $("#hideNA").addEventListener("change", applyHide);
+buildTabs(); updateTabs();
+$("#tabs").addEventListener("click", e => { const b = e.target.closest(".tab"); if (b) selectTab(+b.dataset.tab); });
+$("#tabs").addEventListener("keydown", e => {
+  const i = PHASES.indexOf(activeTab); let j = -1;
+  if (e.key === "ArrowRight") j = (i + 1) % PHASES.length;
+  else if (e.key === "ArrowLeft") j = (i - 1 + PHASES.length) % PHASES.length;
+  else if (e.key === "Home") j = 0; else if (e.key === "End") j = PHASES.length - 1;
+  if (j >= 0){ e.preventDefault(); selectTab(PHASES[j], true); }
+});
+
+/* ---------- Start (after everything above is defined) ---------- */
+if (REQUIRE_SIGN_IN) A.onAuthStateChanged(auth, startSession);
+else startSession({email:""});
 </script>
 </body>
 </html>
