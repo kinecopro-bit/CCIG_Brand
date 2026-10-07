@@ -5,11 +5,18 @@ Client-facing home page: timeline on top, full checklist below. Source content c
 `../20260924-Benefits-SelfFundedOnboardingChecklist.docx` (timeline phases/weeks).
 
 - `index.html` – single static page, brand fonts/colors, Firebase Auth + Firestore via CDN ES modules.
-- `firestore.rules` – security rules (publish in Firebase console → Firestore Database → Rules).
+- `firestore.rules` – production security rules (publish in Firebase console → Firestore Database → Rules).
+- `firestore.rules.open-test` – wide-open rules for no-sign-in test mode.
 
 ## Checklist columns
 Item · What This Covers · Responsible Party · Signer · **Sign** (button on document rows) · **Status** (Not Started / Scheduled / In Progress / Complete / Submitted) · **Notes** · **Applicability** (Applicable / Not Applicable, staff only).
 *Not Applicable* fades and greys the row and disables Status/Notes. "Hide items that don't apply" removes those rows from view.
+
+## Open test mode vs. sign-in
+`index.html` has a switch near the top: `const REQUIRE_SIGN_IN = false;`
+- **false (current): open test mode.** No sign-in. Anyone with the URL can edit everything, including Applicability and signing links. Publish `firestore.rules.open-test`. Never use real client data in this mode.
+- **true: production mode.** Email-link sign-in, per-client access lists, staff-only Applicability and links. Publish `firestore.rules` and follow the setup below.
+Switching back and forth loses no data (same Firestore documents).
 
 ## Sign-in (emailed link)
 Clients enter their email and receive a one-time sign-in link; no passwords. Access is by client link, e.g.

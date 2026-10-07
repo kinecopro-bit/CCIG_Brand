@@ -191,6 +191,11 @@ const firebaseConfig = {
   appId: "1:381052623625:web:2a5c6c0e3311158b2d91d8"
 };
 
+// SIGN-IN GATE. false = OPEN TEST MODE: no sign-in, every visitor can edit everything (incl. Applicability and
+// signing links). Pair with firestore.rules.open-test. Set to true (and publish firestore.rules) to turn the
+// email-link sign-in and per-client access back on.
+const REQUIRE_SIGN_IN = false;
+
 const STATUSES = ["Not Started","Scheduled","In Progress","Complete","Submitted"];
 const DONE = new Set(["Complete","Submitted"]);
 const TIMELINE = [
@@ -277,15 +282,16 @@ const EMAIL_KEY = "ccig-selffunded-email";
 try {
   const { initializeApp } = await import(FB+"firebase-app.js");
   F = await import(FB+"firebase-firestore.js");
-  A = await import(FB+"firebase-auth.js");
+  if (REQUIRE_SIGN_IN) A = await import(FB+"firebase-auth.js");
   const app = initializeApp(firebaseConfig);
-  db = F.getFirestore(app); auth = A.getAuth(app);
+  db = F.getFirestore(app); if (REQUIRE_SIGN_IN) auth = A.getAuth(app);
 } catch(e){
   console.warn(e);
   show("#authView", true); setMsg("#authMsg", "Could not load the sign-in service. Check your connection and refresh.", "err");
   throw e;
 }
 
+if (REQUIRE_SIGN_IN) {
 // Returning from the emailed link
 if (A.isSignInWithEmailLink(auth, location.href)) {
   let email = ""; try { email = localStorage.getItem(EMAIL_KEY) || ""; } catch {}
@@ -317,26 +323,32 @@ $("#emailInput").addEventListener("keydown", e => { if (e.key === "Enter") $("#s
 const doSignOut = () => A.signOut(auth);
 $("#signOut").addEventListener("click", doSignOut);
 $("#noAccessOut").addEventListener("click", doSignOut);
+}
 
-A.onAuthStateChanged(auth, async user => {
+async function startSession(user){
   unsubs.forEach(u => u()); unsubs = [];
   progress = {}; applic = {}; docLinks = {}; isStaff = false; serverSeen = false; failMsg = "";
   show("#appView", false); show("#staffPanel", false); show("#noAccess", false);
   if (!user){ show("#authView", true); show("#topbar", false); return; }
-  show("#authView", false); show("#topbar", true);
+  show("#authView", false);
   const email = (user.email || "").toLowerCase();
-  $("#who").textContent = "Signed in as " + email;
-
   let staffCheck = "";
-  try {
-    const sd = await F.getDoc(F.doc(db, "staff", email));
-    isStaff = sd.exists();
-    staffCheck = isStaff ? "found" : 'no staff document with ID "' + email + '"';
-  } catch(e) { isStaff = false; staffCheck = "error: " + (e.code || e.message); console.warn("staff check failed", e); }
+  if (REQUIRE_SIGN_IN){
+    show("#topbar", true);
+    $("#who").textContent = "Signed in as " + email;
+    try {
+      const sd = await F.getDoc(F.doc(db, "staff", email));
+      isStaff = sd.exists();
+      staffCheck = isStaff ? "found" : 'no staff document with ID "' + email + '"';
+    } catch(e) { isStaff = false; staffCheck = "error: " + (e.code || e.message); console.warn("staff check failed", e); }
+  } else {
+    show("#topbar", false);
+    isStaff = true;   // open test mode: everyone can edit everything
+  }
 
   clientRef = F.doc(db, "clients", clientId);
   progressRef = F.doc(db, "clients", clientId, "progress", "main");
-  show("#staffPanel", isStaff);
+  show("#staffPanel", isStaff && REQUIRE_SIGN_IN);
   setSync("Connecting…", ""); armSlowTimer();
   render();   // empty checklist shell until data arrives
 
@@ -346,7 +358,7 @@ A.onAuthStateChanged(auth, async user => {
     if (err.code === "permission-denied" && !isStaff){
       denied = true; show("#appView", false); show("#noAccess", true);
       $("#noAccessDetail").textContent = "Signed in as " + email + " | Staff check: " + staffCheck + " | Client: " + clientId;
-    } else { failMsg = "Can't load data: " + (err.code || "error"); refreshBadge(); }
+    } else { failMsg = err.code === "permission-denied" ? "Access denied by Firestore rules (publish firestore.rules.open-test for open test mode)" : "Can't load data: " + (err.code || "error"); refreshBadge(); }
   };
   show("#appView", true);
   unsubs.push(F.onSnapshot(clientRef, {includeMetadataChanges:true}, snap => {
@@ -368,7 +380,10 @@ A.onAuthStateChanged(auth, async user => {
     refreshBadge();
     softRender();
   }, onErr));
-});
+}
+
+if (REQUIRE_SIGN_IN) A.onAuthStateChanged(auth, startSession);
+else startSession({email:""});
 
 function softRender(){   // don't clobber a note the user is typing in
   if (!document.activeElement || document.activeElement.tagName !== "TEXTAREA") render(); else updateSummary();
