@@ -54,6 +54,7 @@
   #syncState.warn{background:#ffe9bf}
   .table-wrap{overflow-x:auto}
   table{width:100%;border-collapse:collapse;min-width:1170px}
+  table.nosign{min-width:900px}
   th{background:var(--darkblue);color:var(--white);font-size:12px;letter-spacing:.06em;text-transform:uppercase;text-align:left;padding:10px 12px;position:sticky;top:0}
   td{padding:10px 12px;border-bottom:1px solid var(--lightgrey);vertical-align:top;font-size:14.5px;background:var(--white)}
   tr.phase td{background:var(--lightblue);color:var(--white);font-family:'Playfair Display',serif;font-weight:700;font-size:16px;padding:10px 12px}
@@ -183,10 +184,7 @@
     <div class="tabpanel" id="tabpanel" role="tabpanel">
     <div class="table-wrap">
       <table>
-        <thead><tr>
-          <th>Item</th><th>What This Covers</th><th>Responsible Party</th><th>Signer</th><th>Sign</th>
-          <th>Status</th><th>Notes</th><th>Applicability</th>
-        </tr></thead>
+        <thead id="thead"></thead>
         <tbody id="rows"></tbody>
       </table>
     </div>
@@ -463,8 +461,13 @@ function selectTab(n, focus){
 }
 
 /* ---------- Render ---------- */
+// Signer / Sign columns only appear in sections that actually have documents to sign.
+const phaseHasSigning = n => tasks.some(t => phaseNum(t) === n && (t.signer || t.type === "Document"));
 function render(){
   const body = $("#rows");
+  const signing = phaseHasSigning(activeTab);
+  $("#thead").innerHTML = "<tr><th>Item</th><th>What This Covers</th><th>Responsible Party</th>" + (signing ? "<th>Signer</th><th>Sign</th>" : "") + "<th>Status</th><th>Notes</th><th>Applicability</th></tr>";
+  body.closest("table").classList.toggle("nosign", !signing);
   let html = "";
   for (const t of tasks){
     if (phaseNum(t) !== activeTab) continue;
@@ -474,8 +477,8 @@ function render(){
         <details><summary>Why it matters</summary>${esc(t.why)}<br><em>What to expect:</em> ${esc(t.expect)}</details></td>
       <td>${esc(t.short)}</td>
       <td class="col-party">${esc(t.party)}</td>
-      <td>${esc(t.signer)}</td>
-      <td class="col-sign">${signCell(t, na)}</td>
+      ${signing ? `<td>${esc(t.signer)}</td>
+      <td class="col-sign">${signCell(t, na)}</td>` : ""}
       <td class="col-status"><select class="st" data-f="status" data-v="${esc(s.status)}" aria-label="Status for ${esc(t.name)}" ${na?"disabled":""}>
         ${STATUSES.map(o=>`<option${o===s.status?" selected":""}>${o}</option>`).join("")}</select></td>
       <td class="col-note"><textarea data-f="note" rows="1" placeholder="Add a note…" aria-label="Notes for ${esc(t.name)}" ${na?"disabled":""}>${esc(s.note)}</textarea></td>
