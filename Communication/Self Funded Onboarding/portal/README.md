@@ -46,5 +46,23 @@ Marking the row Submitted/Complete is still done by the client; status does not 
 - `clients/{id}/progress/main`: `items{taskId: {status, note}}`. Staff and approved client emails.
 - `staff/{email}`: marks approved CCIG staff. Console only.
 
+## Embedding in an iframe (auto-height, no scroll bar)
+The portal reports its content height to the parent page (`postMessage`, type `ccig-portal-height`) whenever it changes (tab switch, long note, resize). Add this where the iframe lives on your site:
+```html
+<iframe id="ccig-portal"
+  src="https://self-funded-onboarding.web.app/?client=CLIENTID"
+  style="width:100%; border:0; height:900px;"
+  scrolling="no"></iframe>
+<script>
+  window.addEventListener("message", function (e) {
+    if (e.origin !== "https://self-funded-onboarding.web.app") return;
+    if (!e.data || e.data.type !== "ccig-portal-height") return;
+    document.getElementById("ccig-portal").style.height = e.data.height + "px";
+  });
+</script>
+```
+`900px` is only the starting height. The parent can send `{type:"ccig-portal-ping"}` to the iframe's `contentWindow` to ask for the height again.
+Email sign-in links open in their own browser tab, not inside the iframe.
+
 ## Deploy
 `firebase deploy --only hosting` from this folder (see `firebase.json`: public dir `.`, with README/rules ignored).
