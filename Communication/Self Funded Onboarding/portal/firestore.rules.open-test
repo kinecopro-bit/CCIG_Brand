@@ -1,0 +1,15 @@
+rules_version = '2';
+
+// OPEN TEST MODE - no sign-in. Anyone with the page URL can read and write every client's data.
+// Use only with REQUIRE_SIGN_IN = false in index.html and never with real client information.
+// For production, publish firestore.rules instead and set REQUIRE_SIGN_IN = true.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /clients/{clientId} {
+      allow read, write: if true;
+      match /progress/{docId} {
+        allow read, write: if true;
+      }
+    }
+  }
+}
