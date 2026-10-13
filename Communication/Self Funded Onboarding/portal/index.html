@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Self-Funded Onboarding | CCIG</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,800;1,600&family=Source+Sans+Pro:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --green:#8FB24E; --lightblue:#366E8E; --yellow:#FFC666; --darkblue:#153243;
+    --grey:#BFC7CB; --lightgrey:#EDECED; --white:#FFFFFF;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:'Source Sans Pro','Segoe UI',Arial,sans-serif;color:var(--darkblue);background:var(--lightgrey);line-height:1.45}
+  h1,h2,h3{font-family:'Playfair Display',Georgia,serif;margin:0}
+  header.hero{background:var(--darkblue);color:var(--white);text-align:center;padding:28px 24px 30px}
+  header.hero img{height:34px;margin-bottom:16px}
+  .eyebrow{font-weight:600;letter-spacing:.14em;text-transform:uppercase;font-size:12px;color:var(--yellow);margin:0 0 8px}
+  header.hero h1{font-size:32px;font-weight:800}
+  header.hero p.sub{max-width:640px;margin:10px auto 0;color:var(--lightgrey);font-size:16px}
+  main{max-width:1280px;margin:0 auto;padding:24px 16px 64px}
+  .card{background:var(--white);border:1px solid var(--grey);border-radius:10px;box-shadow:0 2px 10px rgba(21,50,67,.08);padding:24px 28px;margin-bottom:24px}
+  .card h2{font-size:24px;font-weight:700;margin-bottom:4px}
+  .card .lead{margin:0 0 20px;color:var(--lightblue)}
+
+  /* Timeline */
+  .timeline{display:grid;grid-template-columns:repeat(5,1fr);gap:0;position:relative;margin-top:8px}
+  .timeline::before{content:"";position:absolute;top:22px;left:10%;right:10%;height:4px;background:var(--grey);z-index:0}
+  .tl-step{position:relative;z-index:1;text-align:center;padding:0 8px;appearance:none;border:0;background:none;color:inherit;font:inherit;cursor:pointer;border-radius:8px}
+  button.tl-step:hover{background:none}
+  .tl-step:hover .tl-title{text-decoration:underline}
+  .tl-step:hover .tl-dot{transform:scale(1.08)}
+  .tl-step:focus-visible{outline:2px solid var(--lightblue);outline-offset:2px}
+  .tl-dot{transition:transform .15s}
+  .tl-dot{width:44px;height:44px;border-radius:50%;margin:0 auto 10px;background:var(--darkblue);color:var(--white);font-weight:700;font-size:18px;display:flex;align-items:center;justify-content:center;border:4px solid var(--white);box-shadow:0 0 0 2px var(--lightblue)}
+  .tl-step.done .tl-dot{background:var(--green);box-shadow:0 0 0 2px var(--green)}
+  .tl-step.active .tl-dot{background:var(--yellow);color:var(--darkblue);box-shadow:0 0 0 2px var(--yellow)}
+  .tl-title{font-weight:700;font-size:15px}
+  .tl-when{font-size:13px;color:var(--lightblue);font-weight:600}
+  .tl-prog{font-size:12px;color:#5b6f7a;margin-top:2px}
+  .overall{margin-top:26px}
+  .overall .row{display:flex;justify-content:space-between;font-weight:600;font-size:14px;margin-bottom:6px}
+  .track{height:8px;background:var(--lightgrey);border-radius:999px;overflow:hidden}
+  .fill{height:100%;width:0;background:linear-gradient(90deg,var(--green),var(--lightblue));transition:width .25s}
+
+  /* Checklist */
+  .toolbar{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-bottom:14px;font-size:14px}
+  .toolbar .grow{flex:1}
+  .toolbar label{font-weight:600}
+  .badge{display:inline-block;font-size:12px;font-weight:600;padding:3px 10px;border-radius:999px;background:var(--lightgrey);color:var(--darkblue)}
+  #syncState.ok{background:#e4efd2}
+  #syncState.warn{background:#ffe9bf}
+  .table-wrap{overflow-x:auto}
+  table{width:100%;border-collapse:collapse;min-width:1170px}
+  table.nosign{min-width:900px}
+  th{background:var(--darkblue);color:var(--white);font-size:12px;letter-spacing:.06em;text-transform:uppercase;text-align:left;padding:10px 12px;position:sticky;top:0}
+  td{padding:10px 12px;border-bottom:1px solid var(--lightgrey);vertical-align:top;font-size:14.5px;background:var(--white)}
+  tr.phase td{background:var(--lightblue);color:var(--white);font-family:'Playfair Display',serif;font-weight:700;font-size:16px;padding:10px 12px}
+  td.item strong{display:block}
+  td.item span.short{color:#4a606c;font-size:13.5px}
+  details{margin-top:6px;font-size:13px;color:#4a606c}
+  details summary{cursor:pointer;color:var(--lightblue);font-weight:600}
+  select,textarea{font:inherit;color:var(--darkblue);border:1px solid var(--grey);border-radius:6px;padding:6px 8px;background:var(--white);width:100%}
+  select:focus,textarea:focus{outline:2px solid var(--lightblue);outline-offset:1px}
+  textarea{resize:vertical;min-height:38px;white-space:pre-wrap;overflow-wrap:anywhere}
+  select.st{font-weight:600}
+  select.st[data-v="Not Started"]{background:var(--lightgrey)}
+  select.st[data-v="Scheduled"]{background:#dbe9f1}
+  select.st[data-v="In Progress"]{background:#ffe9bf}
+  select.st[data-v="Submitted"]{background:#d6e6ee;border-color:var(--lightblue)}
+  select.st[data-v="Complete"]{background:#dcebc3;border-color:var(--green)}
+  td.col-status{width:150px} td.col-note{width:280px} td.col-app{width:150px} td.col-party{width:170px}
+  /* Not Applicable rows */
+  tr.na td{opacity:.42;filter:grayscale(.8);background:#f3f3f3}
+  tr.na td.col-app{opacity:1;filter:none;background:#f3f3f3}
+  tr.na td.col-status select,tr.na td.col-note textarea{pointer-events:none}
+  .locked-note{font-size:12px;color:#5b6f7a;margin-top:4px}
+
+  /* Section tabs */
+  .tabs{display:flex;flex-wrap:wrap;background:var(--lightgrey);border:1px solid var(--grey);border-bottom:0;border-radius:8px 8px 0 0;margin-top:4px}
+  .tab{flex:1 1 170px;appearance:none;border:0;border-bottom:3px solid transparent;background:transparent;cursor:pointer;font:inherit;text-align:left;padding:12px 14px 10px;color:var(--lightblue);transition:background .15s}
+  .tab:hover{background:rgba(54,110,142,.08)}
+  .tab:focus-visible{outline:2px solid var(--lightblue);outline-offset:-2px}
+  .tab[aria-selected="true"]{background:var(--white);color:var(--darkblue);border-bottom-color:var(--green)}
+  .tab .kick{display:block;font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:#6b7c86}
+  .tab[aria-selected="true"] .kick{color:var(--lightblue)}
+  .tab .nm{display:block;font-weight:700;font-size:14.5px;line-height:1.25;margin:2px 0 4px}
+  .tab .ct{display:inline-block;font-size:12px;font-weight:600;background:rgba(21,50,67,.08);border-radius:999px;padding:1px 9px}
+  .tab.alldone .ct{background:#dcebc3;color:#3d6b12}
+  .tabpanel{border:1px solid var(--grey);border-top:0;border-radius:0 0 8px 8px}
+  .tabpanel .table-wrap{border-radius:0 0 8px 8px}
+  /* Sign buttons */
+  td.col-sign{width:150px;white-space:nowrap}
+  a.signbtn{display:inline-block;font-weight:700;font-size:14px;text-decoration:none;background:var(--green);color:var(--darkblue);border-radius:6px;padding:8px 14px}
+  a.signbtn:hover{background:#7ea040}
+  span.signbtn{display:inline-block;font-size:13px;color:#6b7c86;border:1px dashed var(--grey);border-radius:6px;padding:7px 12px}
+  button.editlink{display:block;margin-top:6px;font-size:12px;padding:2px 0}
+  tr.na td.col-sign{pointer-events:none}
+  /* Auth + staff */
+  .topbar{max-width:1280px;margin:0 auto;padding:10px 16px 0;display:flex;justify-content:flex-end;align-items:center;gap:12px;font-size:14px}
+  .topbar .who{color:var(--lightblue);font-weight:600}
+  button,.btn{font:inherit;font-weight:600;border:0;border-radius:6px;padding:9px 18px;cursor:pointer;background:var(--lightblue);color:var(--white)}
+  button:hover{background:var(--darkblue)}
+  button.link{background:none;color:var(--lightblue);padding:4px 8px;text-decoration:underline}
+  button.link:hover{background:none;color:var(--darkblue)}
+  button:disabled{opacity:.5;cursor:default}
+  input[type=email]{font:inherit;color:var(--darkblue);border:1px solid var(--grey);border-radius:6px;padding:9px 12px;width:100%;max-width:360px}
+  .auth-card{max-width:520px;margin:32px auto}
+  .auth-row{display:flex;gap:10px;flex-wrap:wrap;margin:14px 0 8px}
+  .msg{font-size:14px;margin:8px 0 0}
+  .msg.err{color:#9a2b1f} .msg.good{color:#3d6b12}
+  .hidden{display:none!important}
+  .staff h3{font-size:18px;margin-bottom:8px}
+  .staff label{display:block;font-weight:600;margin:12px 0 4px;font-size:14px}
+  .staff input[type=text]{font:inherit;border:1px solid var(--grey);border-radius:6px;padding:8px 10px;width:100%;max-width:420px}
+  .staff textarea{min-height:90px;max-width:520px}
+  @media(max-width:700px){
+    .timeline{grid-template-columns:1fr;gap:18px}.timeline::before{display:none}
+    header.hero h1{font-size:26px} .card{padding:18px}
+  }
+</style>
+</head>
+<body>
+<header class="hero">
+  <img src="assets/CCIG-Reverse-Horizontal-RGB.png" alt="CCIG">
+  <p class="eyebrow">Benefits &nbsp;|&nbsp; <span id="clientName">Client Onboarding</span></p>
+  <h1>Your Path to a Self-Funded Plan</h1>
+  <p class="sub">This is the full path from today to go-live. Five phases, each with its own short checklist. Update the status of each item as you go, and leave a note for your CCIG team whenever something needs context.</p>
+</header>
+
+<div class="topbar hidden" id="topbar"><span class="who" id="who"></span><button class="link" id="signOut">Sign out</button></div>
+
+<main>
+  <section class="card auth-card hidden" id="authView" aria-labelledby="ah">
+    <h2 id="ah">Sign in</h2>
+    <p class="lead">Enter your work email and we'll send you a one-time sign-in link. No password needed.</p>
+    <div class="auth-row">
+      <input type="email" id="emailInput" placeholder="you@company.com" autocomplete="email" aria-label="Email address">
+      <button id="sendLink">Email me a link</button>
+    </div>
+    <p class="msg" id="authMsg" role="status"></p>
+  </section>
+
+  <section class="card auth-card hidden" id="noAccess">
+    <h2>No access to this page</h2>
+    <p class="lead" id="noAccessText">This email isn't on the access list for this client. Please contact your CCIG team.</p>
+    <p class="msg" id="noAccessDetail" style="word-break:break-all"></p>
+    <button id="noAccessOut">Sign out</button>
+  </section>
+
+  <section class="card staff hidden" id="staffPanel" aria-labelledby="sh">
+    <h2 id="sh">CCIG staff tools</h2>
+    <p class="lead">Only visible to approved CCIG staff. Controls who can open this client's page.</p>
+    <label for="clientNameInput">Client name</label>
+    <input type="text" id="clientNameInput" placeholder="Example Employer, Inc.">
+    <label for="emailsInput">Approved client emails (one per line)</label>
+    <textarea id="emailsInput" placeholder="hr@example.com&#10;cfo@example.com"></textarea>
+    <p><button id="saveClient">Save client access</button></p>
+    <p class="msg" id="staffMsg" role="status"></p>
+  </section>
+
+  <div id="appView" class="hidden">
+  <section class="card" aria-labelledby="tlh">
+    <h2 id="tlh">Timeline</h2>
+    <p class="lead">Estimated weeks from kickoff to your plan's effective date.</p>
+    <div class="timeline" id="timeline"></div>
+    <div class="overall">
+      <div class="row"><span>Overall progress</span><span id="overallCount"></span></div>
+      <div class="track"><div class="fill" id="overallFill"></div></div>
+    </div>
+  </section>
+
+  <section class="card" aria-labelledby="clh">
+    <h2 id="clh">Full Checklist</h2>
+    <p class="lead">Everything in one place: calls, documents, and tasks across every team.</p>
+    <div class="toolbar">
+      <span class="badge" id="syncState">Connecting…</span>
+      <span class="grow"></span>
+      <label><input type="checkbox" id="hideNA"> Hide items that don't apply</label>
+    </div>
+    <div class="tabs" id="tabs" role="tablist" aria-label="Checklist sections"></div>
+    <div class="tabpanel" id="tabpanel" role="tabpanel">
+    <div class="table-wrap">
+      <table>
+        <thead id="thead"></thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+    </div>
+    <p class="locked-note" id="appNote"></p>
+  </section>
+  </div>
+</main>
+
+<script>
+window.TASKS = [{"id": 1, "phase": "1. Kickoff & Implementation Calls", "name": "TPA & Benefit Design Calls", "type": "Call", "key": "ALWAYS", "party": "Client HR + CCIG", "signer": "", "short": "Finalizes plan design and claims setup with your TPA", "why": "Kickoff calls with the Third Party Administrator to finalize plan design, eligibility rules, and claims administration setup ahead of the effective date.", "expect": "2-4 sessions of 60-90 minutes over the first 3-4 weeks. Have current plan documents and eligibility file specs ready."}, {"id": 2, "phase": "1. Kickoff & Implementation Calls", "name": "PBM Implementation Calls", "type": "Call", "key": "PBM", "party": "Client HR + CCIG", "signer": "", "short": "Sets up your pharmacy formulary and member ID cards", "why": "Implementation calls with the Pharmacy Benefit Manager to configure the formulary, prior authorization rules, and member ID cards.", "expect": "2-3 calls led by the PBM's implementation team. HR confirms member eligibility feed timing."}, {"id": 3, "phase": "1. Kickoff & Implementation Calls", "name": "Cost Containment Vendor Calls", "type": "Call", "key": "ANY_CC", "party": "Client HR + CCIG", "signer": "", "short": "Kicks off each Savings Engine vendor you selected", "why": "Individual kickoff calls with each selected Savings Engine vendor to set up enrollment, eligibility feeds, and member communications.", "expect": "One call per selected vendor, typically 30-45 minutes, scheduled across the first month."}, {"id": 4, "phase": "1. Kickoff & Implementation Calls", "name": "COBRA / FSA / HSA Calls", "type": "Call", "key": "ALWAYS", "party": "Client HR + CCIG", "signer": "", "short": "Transitions COBRA and FSA/HSA administration to the new plan", "why": "Setup calls with the COBRA administrator and FSA/HSA vendor to transition existing participants and establish new account administration.", "expect": "One call per vendor. HR provides the current COBRA participant list and FSA/HSA balances for transition."}, {"id": 5, "phase": "1. Kickoff & Implementation Calls", "name": "Banking Implementation Calls", "type": "Call", "key": "ALWAYS", "party": "Client Finance + CCIG", "signer": "", "short": "Sets up claims funding with your TPA and bank", "why": "Calls with the TPA and bank to set up the claims funding account, wire/ACH authorization, and daily funding process.", "expect": "1-2 calls. Finance should have bank signer authorization ready in advance."}, {"id": 6, "phase": "1. Kickoff & Implementation Calls", "name": "Coverage Determination Calls (Optional)", "type": "Call", "key": "FIN_COVERAGE_CALL", "party": "Client Finance", "signer": "", "short": "Optional review of how high-cost claims will be paid", "why": "Optional calls where Finance reviews how specific high-cost claims will be adjudicated under the new plan design.", "expect": "Scheduled only if Finance opts in on the Setup tab; typically one call."}, {"id": 7, "phase": "2. Documents to Sign", "name": "TPA Admin Service Agreement", "type": "Document", "key": "TPA_ADMIN", "party": "Client Executive/Finance", "signer": "CFO / Authorized Signer", "short": "The core contract governing claims administration", "why": "The core administrative services contract with the Third Party Administrator. It governs claims processing, customer service, and reporting for the life of the agreement.", "expect": "Legal/CFO review is recommended. Typical turnaround is 5-10 business days once terms are finalized."}, {"id": 8, "phase": "2. Documents to Sign", "name": "Stop-Loss Quote", "type": "Document", "key": "STOP_LOSS", "party": "Client Executive/Finance", "signer": "CFO / Authorized Signer", "short": "Locks in your stop-loss pricing and terms", "why": "The formal quote from the stop-loss carrier confirming premium, specific and aggregate deductibles, and contract basis (paid/incurred vs. incurred/paid).", "expect": "Signature confirms acceptance of terms and locks in pricing. Usually due within 5-10 business days of receipt to hold the rate."}, {"id": 9, "phase": "2. Documents to Sign", "name": "Stop-Loss Policy", "type": "Document", "key": "STOP_LOSS", "party": "Client Executive/Finance", "signer": "CFO / Authorized Signer", "short": "The binding policy that pays claims above deductible", "why": "The binding insurance policy issued after the quote is accepted. This is the legal contract that pays claims above the deductible.", "expect": "Issued after the quote is signed and the plan is bound. Review against the quote for accuracy."}, {"id": 10, "phase": "2. Documents to Sign", "name": "PBM Master Agreement", "type": "Document", "key": "PBM", "party": "Client Executive/Finance", "signer": "CFO / Authorized Signer", "short": "Governs pharmacy pricing and rebate terms", "why": "The contract governing pharmacy claims processing, pricing guarantees, and rebate terms with the Pharmacy Benefit Manager.", "expect": "Often the longest document in the packet. CFO/Authorized Signer review is recommended before signing."}, {"id": 11, "phase": "2. Documents to Sign", "name": "PBM Implementation Manual", "type": "Document", "key": "PBM", "party": "Client Executive/Finance", "signer": "CFO / Authorized Signer", "short": "Confirms formulary and prior authorization rules", "why": "Operational reference confirming formulary, prior authorization criteria, and member communication timelines for go-live.", "expect": "Typically an acknowledgment signature, not a negotiated contract."}, {"id": 12, "phase": "2. Documents to Sign", "name": "Captive Agreement", "type": "Document", "key": "CAPTIVE", "party": "Client Executive/Finance", "signer": "CFO / Authorized Signer", "short": "Governs your participation in the group captive", "why": "The governing agreement (100+ pages) for participation in the group captive, covering member obligations, loss fund mechanics, and governance.", "expect": "The most detailed document in the packet. Budget extra review time; CCIG can walk through the key sections before signing."}, {"id": 13, "phase": "2. Documents to Sign", "name": "Captive Capital Invoice", "type": "Document", "key": "CAPTIVE", "party": "Client Finance", "signer": "CFO / Authorized Signer", "short": "Your required capital contribution to the captive", "why": "Invoice for the client's required capital contribution to the captive, a standard condition of participation.", "expect": "Payment due date is tied to the plan effective date. Confirm wire instructions with Finance before sending funds."}, {"id": 14, "phase": "2. Documents to Sign", "name": "Savings Engine Agreement - CancerCare", "type": "Document", "key": "CC_CANCERCARE", "party": "Client Executive/Finance", "signer": "CFO / Authorized Signer", "short": "Enrollment agreement with CancerCare", "why": "Enrollment/services agreement with CancerCare, cancer care navigation and second-opinion support for members with a cancer diagnosis.", "expect": "Signature authorizes data sharing and enrollment. Turnaround varies by vendor; confirm on the vendor kickoff call."}, {"id": 15, "phase": "2. Documents to Sign", "name": "Savings Engine Agreement - eHealth", "type": "Document", "key": "CC_EHEALTH", "party": "Client Executive/Finance", "signer": "CFO / Authorized Signer", "short": "Enrollment agreement with eHealth", "why": "Enrollment/services agreement with eHealth, Medicare and ACA marketplace enrollment support, commonly used for retirees or employees losing group coverage.", "expect": "Signature authorizes data sharing and enrollment. Turnaround varies by vendor; confirm on the vendor kickoff call."}, {"id": 16, "phase": "2. Documents to Sign", "name": "Savings Engine Agreement - First Stop Health", "type": "Document", "key": "CC_FIRSTSTOP", "party": "Client Executive/Finance", "signer": "CFO / Authorized Signer", "short": "Enrollment agreement with First Stop Health", "why": "Enrollment/services agreement with First Stop Health, 24/7 virtual primary and urgent care, giving members phone or video access to a doctor.", "expect": "Signature authorizes data sharing and enrollment. Turnaround varies by vendor; confirm on the vendor kickoff call."}, {"id": 17, "phase": "2. Documents to Sign", "name": "Savings Engine Agreement - Found", "type": "Document", "key": "CC_FOUND", "party": "Client Executive/Finance", "signer": "CFO / Authorized Signer", "short": "Enrollment agreement with Found", "why": "Enrollment/services agreement with Found, a physician-led weight management program pairing GLP-1 medication access with coaching, aimed at controlling GLP-1 drug spend.", "expect": "Signature authorizes data sharing and enrollment. Turnaround varies by vendor; confirm on the vendor kickoff call."}, {"id": 18, "phase": "2. Documents to Sign", "name": "Savings Engine Agreement - HUSK", "type": "Document", "key": "CC_HUSK", "party": "Client Executive/Finance", "signer": "CFO / Authorized Signer", "short": "Enrollment agreement with HUSK", "why": "Enrollment/services agreement with HUSK, a wellness ecosystem covering nutrition counseling, mental health support, and incentive rewards.", "expect": "Signature authorizes data sharing and enrollment. Turnaround varies by vendor; confirm on the vendor kickoff call."}, {"id": 19, "phase": "2. Documents to Sign", "name": "Savings Engine Agreement - Lyra Select", "type": "Document", "key": "CC_LYRA", "party": "Client Executive/Finance", "signer": "CFO / Authorized Signer", "short": "Enrollment agreement with Lyra Select", "why": "Enrollment/services agreement with Lyra Select, a mental health benefit connecting members to therapy and coaching.", "expect": "Signature authorizes data sharing and enrollment. Turnaround varies by vendor; confirm on the vendor kickoff call."}, {"id": 20, "phase": "2. Documents to Sign", "name": "Savings Engine Agreement - The Phia Group", "type": "Document", "key": "CC_PHIA", "party": "Client Executive/Finance", "signer": "CFO / Authorized Signer", "short": "Enrollment agreement with The Phia Group", "why": "Enrollment/services agreement with The Phia Group, benefit compliance and subrogation support, helping recover costs from third parties and reduce plan liability.", "expect": "Signature authorizes data sharing and enrollment. Turnaround varies by vendor; confirm on the vendor kickoff call."}, {"id": 21, "phase": "2. Documents to Sign", "name": "Savings Engine Agreement - Progeny Health", "type": "Document", "key": "CC_PROGENY", "party": "Client Executive/Finance", "signer": "CFO / Authorized Signer", "short": "Enrollment agreement with Progeny Health", "why": "Enrollment/services agreement with Progeny Health, specialized case management for babies in the NICU, aimed at improving outcomes and controlling neonatal claim costs.", "expect": "Signature authorizes data sharing and enrollment. Turnaround varies by vendor; confirm on the vendor kickoff call."}, {"id": 22, "phase": "2. Documents to Sign", "name": "Savings Engine Agreement - Renalogic", "type": "Document", "key": "CC_RENALOGIC", "party": "Client Executive/Finance", "signer": "CFO / Authorized Signer", "short": "Enrollment agreement with Renalogic", "why": "Enrollment/services agreement with Renalogic, chronic kidney disease and dialysis cost management, identifying at-risk members early and steering care to lower-cost, in-network dialysis providers.", "expect": "Signature authorizes data sharing and enrollment. Turnaround varies by vendor; confirm on the vendor kickoff call."}, {"id": 23, "phase": "2. Documents to Sign", "name": "Savings Engine Agreement - Rightway", "type": "Document", "key": "CC_RIGHTWAY", "party": "Client Executive/Finance", "signer": "CFO / Authorized Signer", "short": "Enrollment agreement with Rightway", "why": "Enrollment/services agreement with Rightway, care navigation and pharmacy guidance, helping members find in-network providers and compare costs for surgeries, imaging, and prescriptions.", "expect": "Signature authorizes data sharing and enrollment. Turnaround varies by vendor; confirm on the vendor kickoff call."}, {"id": 24, "phase": "2. Documents to Sign", "name": "Savings Engine Agreement - SmartConnect (powered by SmartMatch)", "type": "Document", "key": "CC_SMARTCONNECT", "party": "Client Executive/Finance", "signer": "CFO / Authorized Signer", "short": "Enrollment agreement with SmartConnect (powered by SmartMatch)", "why": "Enrollment/services agreement with SmartConnect (powered by SmartMatch), Medicare enrollment support that helps Medicare-eligible employees and retirees compare and enroll in Medicare plans, reducing employer plan spend for that population.", "expect": "Signature authorizes data sharing and enrollment. Turnaround varies by vendor; confirm on the vendor kickoff call."}, {"id": 25, "phase": "2. Documents to Sign", "name": "Savings Engine Agreement - Springbuk", "type": "Document", "key": "CC_SPRINGBUK", "party": "Client Executive/Finance", "signer": "CFO / Authorized Signer", "short": "Enrollment agreement with Springbuk", "why": "Enrollment/services agreement with Springbuk, a health data analytics platform used to identify cost drivers and track plan performance.", "expect": "Signature authorizes data sharing and enrollment. Turnaround varies by vendor; confirm on the vendor kickoff call."}, {"id": 26, "phase": "2. Documents to Sign", "name": "Savings Engine Agreement - Valenz Health", "type": "Document", "key": "CC_VALENZ", "party": "Client Executive/Finance", "signer": "CFO / Authorized Signer", "short": "Enrollment agreement with Valenz Health", "why": "Enrollment/services agreement with Valenz Health, claims cost containment and repricing support, including reference-based pricing and bill review to reduce high-cost claims.", "expect": "Signature authorizes data sharing and enrollment. Turnaround varies by vendor; confirm on the vendor kickoff call."}, {"id": 27, "phase": "3. HR Workstream - Open Enrollment Setup", "name": "Build HRIS for Open Enrollment", "type": "Task", "key": "ALWAYS", "party": "Client HR", "signer": "", "short": "Loads new plan options and rates into your HRIS", "why": "Configure the HR information system to reflect new plan options, rates, and eligibility rules ahead of open enrollment.", "expect": "HR-owned. CCIG provides plan design specs to support setup."}, {"id": 28, "phase": "3. HR Workstream - Open Enrollment Setup", "name": "Coordinate Open Enrollment Dates/Times", "type": "Task", "key": "ALWAYS", "party": "Client HR", "signer": "", "short": "Locks the open enrollment window and meeting schedule", "why": "Finalize the open enrollment window and schedule employee meetings or webinars.", "expect": "Lock this in early; it drives every other communication deadline."}, {"id": 29, "phase": "3. HR Workstream - Open Enrollment Setup", "name": "Review Open Enrollment Communications & Materials", "type": "Task", "key": "ALWAYS", "party": "Client HR", "signer": "", "short": "Approves employee enrollment guides and emails", "why": "Review and approve employee-facing enrollment guides, emails, and presentation materials before distribution.", "expect": "CCIG drafts the first version; HR reviews for accuracy and tone."}, {"id": 30, "phase": "3. HR Workstream - Open Enrollment Setup", "name": "Complete Open Enrollment Eligibility File", "type": "Task", "key": "ALWAYS", "party": "Client HR", "signer": "", "short": "Submits the census file that loads member records", "why": "Finalize and submit the eligibility census file the TPA and vendors use to load member records.", "expect": "The single most time-sensitive HR deliverable. A late file delays ID cards and vendor access for members."}, {"id": 31, "phase": "4. Finance Workstream", "name": "Establish Bank Account for Benefits", "type": "Task", "key": "ALWAYS", "party": "Client Finance", "signer": "", "short": "Opens the account that funds claims payments", "why": "Open the dedicated bank account used to fund claims payments under the self-funded plan.", "expect": "Banks typically need 5-10 business days. Start this early."}, {"id": 32, "phase": "4. Finance Workstream", "name": "Review Sample Check Registers", "type": "Task", "key": "ALWAYS", "party": "Client Finance", "signer": "", "short": "Confirms your claims funding and reporting format", "why": "Review sample TPA check registers to confirm the funding and reporting format Finance will receive going forward.", "expect": "One-time review that sets up Finance's ongoing reconciliation process."}, {"id": 33, "phase": "5. Cost Containment / Savings Engine Enrollment", "name": "Complete Enrollment - CancerCare", "type": "Task", "key": "CC_CANCERCARE", "party": "Client HR", "signer": "", "short": "Activates CancerCare for your members", "why": "Finalize the eligibility feed and member enrollment setup with CancerCare so the solution is active for members at go-live.", "expect": "Coordinated on the vendor kickoff call above; exact timing varies by vendor."}, {"id": 34, "phase": "5. Cost Containment / Savings Engine Enrollment", "name": "Complete Enrollment - eHealth", "type": "Task", "key": "CC_EHEALTH", "party": "Client HR", "signer": "", "short": "Activates eHealth for your members", "why": "Finalize the eligibility feed and member enrollment setup with eHealth so the solution is active for members at go-live.", "expect": "Coordinated on the vendor kickoff call above; exact timing varies by vendor."}, {"id": 35, "phase": "5. Cost Containment / Savings Engine Enrollment", "name": "Complete Enrollment - First Stop Health", "type": "Task", "key": "CC_FIRSTSTOP", "party": "Client HR", "signer": "", "short": "Activates First Stop Health for your members", "why": "Finalize the eligibility feed and member enrollment setup with First Stop Health so the solution is active for members at go-live.", "expect": "Coordinated on the vendor kickoff call above; exact timing varies by vendor."}, {"id": 36, "phase": "5. Cost Containment / Savings Engine Enrollment", "name": "Complete Enrollment - Found", "type": "Task", "key": "CC_FOUND", "party": "Client HR", "signer": "", "short": "Activates Found for your members", "why": "Finalize the eligibility feed and member enrollment setup with Found so the solution is active for members at go-live.", "expect": "Coordinated on the vendor kickoff call above; exact timing varies by vendor."}, {"id": 37, "phase": "5. Cost Containment / Savings Engine Enrollment", "name": "Complete Enrollment - HUSK", "type": "Task", "key": "CC_HUSK", "party": "Client HR", "signer": "", "short": "Activates HUSK for your members", "why": "Finalize the eligibility feed and member enrollment setup with HUSK so the solution is active for members at go-live.", "expect": "Coordinated on the vendor kickoff call above; exact timing varies by vendor."}, {"id": 38, "phase": "5. Cost Containment / Savings Engine Enrollment", "name": "Complete Enrollment - Lyra Select", "type": "Task", "key": "CC_LYRA", "party": "Client HR", "signer": "", "short": "Activates Lyra Select for your members", "why": "Finalize the eligibility feed and member enrollment setup with Lyra Select so the solution is active for members at go-live.", "expect": "Coordinated on the vendor kickoff call above; exact timing varies by vendor."}, {"id": 39, "phase": "5. Cost Containment / Savings Engine Enrollment", "name": "Complete Enrollment - The Phia Group", "type": "Task", "key": "CC_PHIA", "party": "Client HR", "signer": "", "short": "Activates The Phia Group for your members", "why": "Finalize the eligibility feed and member enrollment setup with The Phia Group so the solution is active for members at go-live.", "expect": "Coordinated on the vendor kickoff call above; exact timing varies by vendor."}, {"id": 40, "phase": "5. Cost Containment / Savings Engine Enrollment", "name": "Complete Enrollment - Progeny Health", "type": "Task", "key": "CC_PROGENY", "party": "Client HR", "signer": "", "short": "Activates Progeny Health for your members", "why": "Finalize the eligibility feed and member enrollment setup with Progeny Health so the solution is active for members at go-live.", "expect": "Coordinated on the vendor kickoff call above; exact timing varies by vendor."}, {"id": 41, "phase": "5. Cost Containment / Savings Engine Enrollment", "name": "Complete Enrollment - Renalogic", "type": "Task", "key": "CC_RENALOGIC", "party": "Client HR", "signer": "", "short": "Activates Renalogic for your members", "why": "Finalize the eligibility feed and member enrollment setup with Renalogic so the solution is active for members at go-live.", "expect": "Coordinated on the vendor kickoff call above; exact timing varies by vendor."}, {"id": 42, "phase": "5. Cost Containment / Savings Engine Enrollment", "name": "Complete Enrollment - Rightway", "type": "Task", "key": "CC_RIGHTWAY", "party": "Client HR", "signer": "", "short": "Activates Rightway for your members", "why": "Finalize the eligibility feed and member enrollment setup with Rightway so the solution is active for members at go-live.", "expect": "Coordinated on the vendor kickoff call above; exact timing varies by vendor."}, {"id": 43, "phase": "5. Cost Containment / Savings Engine Enrollment", "name": "Complete Enrollment - SmartConnect (powered by SmartMatch)", "type": "Task", "key": "CC_SMARTCONNECT", "party": "Client HR", "signer": "", "short": "Activates SmartConnect (powered by SmartMatch) for your members", "why": "Finalize the eligibility feed and member enrollment setup with SmartConnect (powered by SmartMatch) so the solution is active for members at go-live.", "expect": "Coordinated on the vendor kickoff call above; exact timing varies by vendor."}, {"id": 44, "phase": "5. Cost Containment / Savings Engine Enrollment", "name": "Complete Enrollment - Springbuk", "type": "Task", "key": "CC_SPRINGBUK", "party": "Client HR", "signer": "", "short": "Activates Springbuk for your members", "why": "Finalize the eligibility feed and member enrollment setup with Springbuk so the solution is active for members at go-live.", "expect": "Coordinated on the vendor kickoff call above; exact timing varies by vendor."}, {"id": 45, "phase": "5. Cost Containment / Savings Engine Enrollment", "name": "Complete Enrollment - Valenz Health", "type": "Task", "key": "CC_VALENZ", "party": "Client HR", "signer": "", "short": "Activates Valenz Health for your members", "why": "Finalize the eligibility feed and member enrollment setup with Valenz Health so the solution is active for members at go-live.", "expect": "Coordinated on the vendor kickoff call above; exact timing varies by vendor."}];
+</script>
+<script>
+/* Iframe auto-height: when embedded, tell the parent page how tall the content is so it can
+   resize the iframe (no inner scroll bar). Parent snippet is in README.md. */
+(function(){
+  if (window.parent === window) return;                 // not in an iframe
+  var last = 0, queued = false;
+  function send(){
+    queued = false;
+    var h = Math.ceil(document.body.getBoundingClientRect().height);   // content height, independent of the iframe's own height
+    if (h && h !== last){ last = h; window.parent.postMessage({type: "ccig-portal-height", height: h}, "*"); }
+  }
+  function queue(){ if (!queued){ queued = true; requestAnimationFrame(send); } }
+  window.addEventListener("load", queue);
+  window.addEventListener("resize", queue);
+  window.addEventListener("message", function(e){ if (e.data && e.data.type === "ccig-portal-ping") { last = 0; queue(); } });   // parent can ask for the height again
+  if (window.ResizeObserver) new ResizeObserver(queue).observe(document.documentElement);
+  document.addEventListener("DOMContentLoaded", function(){ if (window.ResizeObserver) new ResizeObserver(queue).observe(document.body); queue(); });
+})();
+</script>
+<script type="module">
+const FB = "https://www.gstatic.com/firebasejs/11.0.2/";
+
+/* ---------- Config ---------- */
+const firebaseConfig = {
+  apiKey: "AIzaSyD28Y-9HcAc3gReJHPuAmixUywAEAaKZvo",
+  authDomain: "self-funded-onboarding.firebaseapp.com",
+  projectId: "self-funded-onboarding",
+  storageBucket: "self-funded-onboarding.firebasestorage.app",
+  messagingSenderId: "381052623625",
+  appId: "1:381052623625:web:2a5c6c0e3311158b2d91d8"
+};
+
+// SIGN-IN GATE. false = OPEN TEST MODE: no sign-in, every visitor can edit everything (incl. Applicability and
+// signing links). Pair with firestore.rules.open-test. Set to true (and publish firestore.rules) to turn the
+// email-link sign-in and per-client access back on.
+const REQUIRE_SIGN_IN = false;
+
+const STATUSES = ["Not Started","Scheduled","In Progress","Complete","Submitted"];
+const DONE = new Set(["Complete","Submitted"]);
+const TIMELINE = [
+  {n:1, title:"Kickoff & Implementation Calls", when:"Weeks 1-4", phases:[1]},
+  {n:2, title:"Document Signatures",            when:"Weeks 2-5", phases:[2]},
+  {n:3, title:"Open Enrollment",                when:"Weeks 4-9", phases:[3]},
+  {n:4, title:"Finance Workstream",             when:"Weeks 4-7", phases:[4]},
+  {n:5, title:"Go-Live",                        when:"Effective Date", phases:[5]},
+];
+
+const tasks = window.TASKS;
+const clientId = (new URLSearchParams(location.search).get("client") || "template").replace(/[^\w-]/g,"").slice(0,64) || "template";
+const pageUrl = location.origin + location.pathname + "?client=" + encodeURIComponent(clientId);
+
+/* Data model
+   clients/{clientId}                 clientName, allowedEmails[], applicability{id: "Applicable"|"Not Applicable"}  (staff write)
+   clients/{clientId}/progress/main   items{id: {status, note}}                                                      (client + staff write)
+   staff/{email}                      exists => approved CCIG staff (created in the Firebase console)               */
+let progress = {};      // { [id]: {status, note} }
+let applic = {};        // { [id]: "Not Applicable" }
+let docLinks = {};      // { [id]: "https://…" }  signing link for THIS client (staff write only)
+let isStaff = false;
+let activeTab = 1;      // phase number shown in the checklist
+
+const $ = s => document.querySelector(s);
+const esc = s => String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const phaseNum = t => parseInt(t.phase, 10);
+const get = id => ({status:"Not Started", note:"", ...(progress[id]||{}), applicable: applic[id] || "Applicable"});
+const show = (sel, on) => $(sel).classList.toggle("hidden", !on);
+function setMsg(sel, text, cls){ const el=$(sel); el.textContent=text||""; el.className="msg "+(cls||""); }
+
+/* ---------- Sync badge: "Saved" only after the SERVER confirms ---------- */
+let db, auth, F = {}, A = {};          // firebase modules
+let clientRef, progressRef, unsubs = [];
+let serverSeen = false, inflight = 0, slowTimer = null, failMsg = "";
+const SLOW_MS = 8000;
+function setSync(text, cls){ const el=$("#syncState"); el.textContent=text; el.className="badge "+cls; }
+function refreshBadge(slow){
+  if (failMsg) return setSync(failMsg, "warn");
+  if (inflight > 0) return setSync(slow ? "Not saved yet: can't reach the server" : "Saving…", slow ? "warn" : "");
+  if (!serverSeen) return setSync(slow ? "Can't reach the server: changes are NOT shared" : "Connecting…", slow ? "warn" : "");
+  setSync("Saved to CCIG portal", "ok");
+}
+function armSlowTimer(){
+  clearTimeout(slowTimer);
+  slowTimer = setTimeout(() => { if (inflight > 0 || !serverSeen) refreshBadge(true); }, SLOW_MS);
+}
+
+/* ---------- Saving ---------- */
+const pendingProg = {}, pendingApp = {}, pendingLinks = {};
+let timer = null;
+function save(id, patch){
+  if ("link" in patch){
+    if (!isStaff) return;
+    docLinks[id] = patch.link; pendingLinks[id] = patch.link;
+  }
+  if ("applicable" in patch){
+    if (!isStaff) return;
+    applic[id] = patch.applicable; pendingApp[id] = patch.applicable;
+  }
+  const p = {}; if ("status" in patch) p.status = patch.status; if ("note" in patch) p.note = patch.note;
+  if (Object.keys(p).length){ progress[id] = {...(progress[id]||{status:"Not Started",note:""}), ...p}; pendingProg[id] = {...pendingProg[id], ...p}; }
+  clearTimeout(timer); timer = setTimeout(flush, 500);
+}
+async function flush(){
+  const prog = {...pendingProg}, app = {...pendingApp}, links = {...pendingLinks};
+  for (const k in pendingProg) delete pendingProg[k];
+  for (const k in pendingApp) delete pendingApp[k];
+  for (const k in pendingLinks) delete pendingLinks[k];
+  const jobs = [];
+  if (Object.keys(prog).length) jobs.push(F.setDoc(progressRef, {items: prog, updatedAt: Date.now()}, {merge:true}));
+  const clientPatch = {};
+  if (Object.keys(app).length)   clientPatch.applicability = app;
+  if (Object.keys(links).length) clientPatch.docLinks = links;
+  if (Object.keys(clientPatch).length) jobs.push(F.setDoc(clientRef, clientPatch, {merge:true}));
+  if (!jobs.length) return;
+  inflight++; refreshBadge(); armSlowTimer();
+  try { await Promise.all(jobs); serverSeen = true; failMsg = ""; }   // resolves only after the server confirms
+  catch(e){ console.warn(e); failMsg = "Not saved: " + (e.code === "permission-denied" ? "access denied by Firestore rules" : (e.code || "error")); }
+  finally { inflight--; refreshBadge(); }
+}
+
+/* ---------- Auth ---------- */
+const EMAIL_KEY = "ccig-selffunded-email";
+try {
+  const { initializeApp } = await import(FB+"firebase-app.js");
+  F = await import(FB+"firebase-firestore.js");
+  if (REQUIRE_SIGN_IN) A = await import(FB+"firebase-auth.js");
+  const app = initializeApp(firebaseConfig);
+  db = F.getFirestore(app); if (REQUIRE_SIGN_IN) auth = A.getAuth(app);
+} catch(e){
+  console.warn(e);
+  show("#authView", true); setMsg("#authMsg", "Could not load the sign-in service. Check your connection and refresh.", "err");
+  throw e;
+}
+
+if (REQUIRE_SIGN_IN) {
+// Returning from the emailed link
+if (A.isSignInWithEmailLink(auth, location.href)) {
+  let email = ""; try { email = localStorage.getItem(EMAIL_KEY) || ""; } catch {}
+  if (!email) email = (window.prompt("Please confirm your email address to finish signing in:") || "").trim();
+  try {
+    await A.signInWithEmailLink(auth, email.toLowerCase(), location.href);
+    try { localStorage.removeItem(EMAIL_KEY); } catch {}
+  } catch(e){
+    console.warn(e);
+    setMsg("#authMsg", e.code === "auth/invalid-action-code" ? "That sign-in link has expired or was already used. Request a new one." : "Could not sign in with that link. Request a new one.", "err");
+  }
+  history.replaceState(null, "", pageUrl);   // drop the one-time code from the address bar
+}
+
+$("#sendLink").addEventListener("click", async () => {
+  const email = $("#emailInput").value.trim().toLowerCase();
+  if (!/^\S+@\S+\.\S+$/.test(email)) return setMsg("#authMsg", "Enter a valid email address.", "err");
+  $("#sendLink").disabled = true; setMsg("#authMsg", "Sending…");
+  try {
+    await A.sendSignInLinkToEmail(auth, email, {url: pageUrl, handleCodeInApp: true});
+    try { localStorage.setItem(EMAIL_KEY, email); } catch {}
+    setMsg("#authMsg", "Check your inbox (and spam folder) for the sign-in link. You can close this tab.", "good");
+  } catch(e){
+    console.warn(e);
+    setMsg("#authMsg", e.code === "auth/operation-not-allowed" ? "Email-link sign-in isn't enabled yet. Please contact your CCIG team." : "Could not send the link. Please try again.", "err");
+  } finally { $("#sendLink").disabled = false; }
+});
+$("#emailInput").addEventListener("keydown", e => { if (e.key === "Enter") $("#sendLink").click(); });
+const doSignOut = () => A.signOut(auth);
+$("#signOut").addEventListener("click", doSignOut);
+$("#noAccessOut").addEventListener("click", doSignOut);
+}
+
+async function startSession(user){
+  unsubs.forEach(u => u()); unsubs = [];
+  progress = {}; applic = {}; docLinks = {}; isStaff = false; serverSeen = false; failMsg = "";
+  show("#appView", false); show("#staffPanel", false); show("#noAccess", false);
+  if (!user){ show("#authView", true); show("#topbar", false); return; }
+  show("#authView", false);
+  const email = (user.email || "").toLowerCase();
+  let staffCheck = "";
+  if (REQUIRE_SIGN_IN){
+    show("#topbar", true);
+    $("#who").textContent = "Signed in as " + email;
+    try {
+      const sd = await F.getDoc(F.doc(db, "staff", email));
+      isStaff = sd.exists();
+      staffCheck = isStaff ? "found" : 'no staff document with ID "' + email + '"';
+    } catch(e) { isStaff = false; staffCheck = "error: " + (e.code || e.message); console.warn("staff check failed", e); }
+  } else {
+    show("#topbar", false);
+    isStaff = true;   // open test mode: everyone can edit everything
+  }
+
+  clientRef = F.doc(db, "clients", clientId);
+  progressRef = F.doc(db, "clients", clientId, "progress", "main");
+  show("#staffPanel", isStaff && REQUIRE_SIGN_IN);
+  setSync("Connecting…", ""); armSlowTimer();
+  render();   // empty checklist shell until data arrives
+
+  let denied = false;
+  const onErr = err => {
+    console.warn(err);
+    if (err.code === "permission-denied" && !isStaff){
+      denied = true; show("#appView", false); show("#noAccess", true);
+      $("#noAccessDetail").textContent = "Signed in as " + email + " | Staff check: " + staffCheck + " | Client: " + clientId;
+    } else { failMsg = err.code === "permission-denied" ? "Access denied by Firestore rules (publish firestore.rules.open-test for open test mode)" : "Can't load data: " + (err.code || "error"); refreshBadge(); }
+  };
+  show("#appView", true);
+  unsubs.push(F.onSnapshot(clientRef, {includeMetadataChanges:true}, snap => {
+    if (denied) return;
+    const d = snap.data() || {};
+    if (!snap.metadata.hasPendingWrites){ applic = d.applicability || {}; docLinks = d.docLinks || {}; }
+    $("#clientName").textContent = d.clientName || "Client Onboarding";
+    if (isStaff){
+      if (document.activeElement !== $("#clientNameInput")) $("#clientNameInput").value = d.clientName || "";
+      if (document.activeElement !== $("#emailsInput")) $("#emailsInput").value = (d.allowedEmails || []).join("\n");
+      if (!snap.exists() && !snap.metadata.fromCache) setMsg("#staffMsg", "This client hasn't been set up yet. Add a name and approved emails, then save.", "");
+    }
+    softRender();
+  }, onErr));
+  unsubs.push(F.onSnapshot(progressRef, {includeMetadataChanges:true}, snap => {
+    if (denied) return;
+    if (!snap.metadata.fromCache) { serverSeen = true; failMsg = ""; }
+    if (!snap.metadata.hasPendingWrites) progress = (snap.data() || {}).items || {};
+    refreshBadge();
+    softRender();
+  }, onErr));
+}
+
+
+function softRender(){   // don't clobber a note the user is typing in
+  if (!document.activeElement || document.activeElement.tagName !== "TEXTAREA") render(); else updateSummary();
+}
+
+/* ---------- Staff tools ---------- */
+$("#saveClient").addEventListener("click", async () => {
+  if (!isStaff) return;
+  const emails = [...new Set($("#emailsInput").value.split(/[\s,;]+/).map(e => e.trim().toLowerCase()).filter(Boolean))];
+  const bad = emails.find(e => !/^\S+@\S+\.\S+$/.test(e));
+  if (bad) return setMsg("#staffMsg", "Not a valid email: " + bad, "err");
+  $("#saveClient").disabled = true; setMsg("#staffMsg", "Saving…");
+  try {
+    await F.setDoc(clientRef, {clientName: $("#clientNameInput").value.trim(), allowedEmails: emails}, {merge:true});
+    setMsg("#staffMsg", "Saved. " + emails.length + " approved email" + (emails.length===1?"":"s") + ".", "good");
+  } catch(e){ console.warn(e); setMsg("#staffMsg", "Could not save: " + (e.code || "error"), "err"); }
+  finally { $("#saveClient").disabled = false; }
+});
+
+/* ---------- Signing links ---------- */
+function safeUrl(u){   // only plain https links are ever rendered or saved
+  try { const x = new URL(String(u||"").trim()); return x.protocol === "https:" ? x.href : ""; } catch { return ""; }
+}
+function signCell(t, na){
+  if (t.type !== "Document") return '<span class="signbtn" style="border:0">&mdash;</span>';
+  const url = safeUrl(docLinks[t.id]);
+  const btn = url
+    ? `<a class="signbtn" href="${esc(url)}" target="_blank" rel="noopener noreferrer" ${na?'aria-disabled="true" tabindex="-1"':""}>Sign document &#8599;</a>`
+    : `<span class="signbtn">Link coming soon</span>`;
+  const edit = isStaff ? `<button class="link editlink" data-act="editlink" data-name="${esc(t.name)}">${url?"Edit link":"Add link"}</button>` : "";
+  return btn + edit;
+}
+
+/* ---------- Section tabs ---------- */
+const phaseName = n => tasks.find(t => phaseNum(t) === n).phase.replace(/^\d+\.\s*/, "");
+const PHASES = [...new Set(tasks.map(phaseNum))];
+function buildTabs(){
+  $("#tabs").innerHTML = PHASES.map(n => `<button class="tab" role="tab" id="tab-${n}" data-tab="${n}" aria-controls="tabpanel">
+    <span class="kick">Section ${n}</span><span class="nm">${esc(phaseName(n))}</span><span class="ct"></span></button>`).join("");
+  $("#tabpanel").setAttribute("aria-labelledby", "tab-" + activeTab);
+}
+function updateTabs(){
+  for (const n of PHASES){
+    const btn = $("#tab-" + n); if (!btn) continue;
+    let total = 0, done = 0;
+    for (const t of tasks){ if (phaseNum(t) !== n) continue; const s = get(t.id); if (s.applicable === "Not Applicable") continue; total++; if (DONE.has(s.status)) done++; }
+    btn.setAttribute("aria-selected", n === activeTab ? "true" : "false");
+    btn.tabIndex = n === activeTab ? 0 : -1;
+    btn.classList.toggle("alldone", total > 0 && done === total);
+    btn.querySelector(".ct").textContent = total ? (total === done ? "\u2713 " : "") + done + " of " + total + " done" : "None apply";
+  }
+  $("#tabpanel").setAttribute("aria-labelledby", "tab-" + activeTab);
+}
+function selectTab(n, focus){
+  activeTab = n; render();
+  if (focus) $("#tab-" + n).focus();
+}
+
+/* ---------- Render ---------- */
+// Signer / Sign columns only appear in sections that actually have documents to sign.
+const phaseHasSigning = n => tasks.some(t => phaseNum(t) === n && (t.signer || t.type === "Document"));
+function render(){
+  const body = $("#rows");
+  const signing = phaseHasSigning(activeTab);
+  $("#thead").innerHTML = "<tr><th>Item</th><th>What This Covers</th><th>Responsible Party</th>" + (signing ? "<th>Signer</th><th>Sign</th>" : "") + "<th>Status</th><th>Notes</th><th>Applicability</th></tr>";
+  body.closest("table").classList.toggle("nosign", !signing);
+  let html = "";
+  for (const t of tasks){
+    if (phaseNum(t) !== activeTab) continue;
+    const s = get(t.id), na = s.applicable === "Not Applicable";
+    html += `<tr data-id="${t.id}" class="${na?"na":""}">
+      <td class="item"><strong>${esc(t.name)}</strong>
+        <details><summary>Why it matters</summary>${esc(t.why)}<br><em>What to expect:</em> ${esc(t.expect)}</details></td>
+      <td>${esc(t.short)}</td>
+      <td class="col-party">${esc(t.party)}</td>
+      ${signing ? `<td>${esc(t.signer)}</td>
+      <td class="col-sign">${signCell(t, na)}</td>` : ""}
+      <td class="col-status"><select class="st" data-f="status" data-v="${esc(s.status)}" aria-label="Status for ${esc(t.name)}" ${na?"disabled":""}>
+        ${STATUSES.map(o=>`<option${o===s.status?" selected":""}>${o}</option>`).join("")}</select></td>
+      <td class="col-note"><textarea data-f="note" rows="1" placeholder="Add a note…" aria-label="Notes for ${esc(t.name)}" ${na?"disabled":""}>${esc(s.note)}</textarea></td>
+      <td class="col-app"><select data-f="applicable" aria-label="Applicability for ${esc(t.name)}" ${isStaff?"":"disabled"}>
+        ${["Applicable","Not Applicable"].map(o=>`<option${o===s.applicable?" selected":""}>${o}</option>`).join("")}</select></td>
+    </tr>`;
+  }
+  body.innerHTML = html;
+  body.querySelectorAll("textarea").forEach(autoGrow);
+  $("#appNote").textContent = isStaff ? "" : "Applicability is set by your CCIG team.";
+  applyHide();
+  updateSummary();
+}
+function autoGrow(el){ el.style.height="auto"; el.style.height=el.scrollHeight+"px"; }
+function applyHide(){
+  const hide = $("#hideNA").checked;
+  document.querySelectorAll("#rows tr.na").forEach(r => r.style.display = hide ? "none" : "");
+}
+
+function updateSummary(){
+  updateTabs();
+  const byPhase = {};
+  let total = 0, done = 0;
+  for (const t of tasks){
+    const s = get(t.id); if (s.applicable === "Not Applicable") continue;
+    const p = phaseNum(t), d = DONE.has(s.status);
+    (byPhase[p] ||= {t:0,d:0}); byPhase[p].t++; if (d) byPhase[p].d++;
+    total++; if (d) done++;
+  }
+  let activeSet = false;
+  $("#timeline").innerHTML = TIMELINE.map(st => {
+    const agg = st.phases.reduce((a,p)=>({t:a.t+(byPhase[p]?.t||0), d:a.d+(byPhase[p]?.d||0)}),{t:0,d:0});
+    const complete = agg.t>0 && agg.d===agg.t;
+    let cls = "";
+    if (complete) cls = "done"; else if (!activeSet){ cls = "active"; activeSet = true; }
+    return `<button type="button" class="tl-step ${cls}" data-tab="${st.phases[0]}" aria-label="Go to checklist section ${st.n}: ${esc(st.title)}"><div class="tl-dot">${complete?"&#10003;":st.n}</div>
+      <div class="tl-title">${esc(st.title)}</div><div class="tl-when">${esc(st.when)}</div>
+      <div class="tl-prog">${agg.t?`${agg.d} of ${agg.t} complete`:"No items"}</div></button>`;
+  }).join("");
+  $("#overallCount").textContent = `${done} of ${total} items complete or submitted`;
+  $("#overallFill").style.width = (total? done/total*100 : 0)+"%";
+}
+
+/* ---------- Events ---------- */
+$("#rows").addEventListener("click", e => {
+  const b = e.target.closest('[data-act="editlink"]'); if (!b || !isStaff) return;
+  const id = +b.closest("tr").dataset.id;
+  const cur = safeUrl(docLinks[id]);
+  const v = window.prompt("Signing link for " + b.dataset.name + " (this client only).\nPaste the full https:// link. Leave empty to remove it.", cur);
+  if (v === null) return;
+  const t = v.trim();
+  if (t && !safeUrl(t)) return window.alert("That doesn't look like a valid https:// link. Nothing was changed.");
+  save(id, {link: t ? safeUrl(t) : ""});
+  render();
+});
+$("#rows").addEventListener("change", e => {
+  const el = e.target, f = el.dataset.f; if (!f) return;
+  const tr = el.closest("tr"), id = +tr.dataset.id;
+  if (f === "applicable" && !isStaff) return;
+  save(id, {[f]: el.value});
+  if (f === "status") el.dataset.v = el.value;
+  if (f === "applicable"){ tr.classList.toggle("na", el.value === "Not Applicable");
+    tr.querySelectorAll('[data-f="status"],[data-f="note"]').forEach(x => x.disabled = el.value === "Not Applicable");
+    applyHide(); }
+  updateSummary();
+});
+$("#rows").addEventListener("input", e => {
+  if (e.target.dataset.f === "note"){ autoGrow(e.target); save(+e.target.closest("tr").dataset.id, {note:e.target.value}); }
+});
+$("#hideNA").addEventListener("change", applyHide);
+buildTabs(); updateTabs();
+$("#timeline").addEventListener("click", e => {   // timeline step -> matching checklist tab
+  const b = e.target.closest(".tl-step"); if (!b) return;
+  selectTab(+b.dataset.tab, true);
+  const calm = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+  $("#clh").scrollIntoView({behavior: calm ? "auto" : "smooth", block: "start"});
+});
+$("#tabs").addEventListener("click", e => { const b = e.target.closest(".tab"); if (b) selectTab(+b.dataset.tab); });
+$("#tabs").addEventListener("keydown", e => {
+  const i = PHASES.indexOf(activeTab); let j = -1;
+  if (e.key === "ArrowRight") j = (i + 1) % PHASES.length;
+  else if (e.key === "ArrowLeft") j = (i - 1 + PHASES.length) % PHASES.length;
+  else if (e.key === "Home") j = 0; else if (e.key === "End") j = PHASES.length - 1;
+  if (j >= 0){ e.preventDefault(); selectTab(PHASES[j], true); }
+});
+
+/* ---------- Start (after everything above is defined) ---------- */
+if (REQUIRE_SIGN_IN) A.onAuthStateChanged(auth, startSession);
+else startSession({email:""});
+</script>
+</body>
+</html>
